@@ -9,3 +9,4 @@
 #include "global.h"
 
 #include "PEPS.h"
+#include "Walker.h"
