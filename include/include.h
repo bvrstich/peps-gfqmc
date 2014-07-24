@@ -10,3 +10,5 @@
 
 #include "PEPS.h"
 #include "Walker.h"
+
+#include "Distribution.h"
