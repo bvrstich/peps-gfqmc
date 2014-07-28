@@ -26,4 +26,15 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,d,L,L);
 
+   Walker walker;
+
+   Distribution dist(walker);
+
+   dist.fill(0.001,-62.86);
+
+   cout << dist.normalize() << endl;
+
+   for(int i = 0;i < 1000;++i)
+      cout << i << "\t" <<  dist.draw() << endl;
+
 }

@@ -12,3 +12,4 @@
 #include "Walker.h"
 
 #include "Distribution.h"
+#include "SL_PEPS.h"

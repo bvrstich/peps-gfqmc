@@ -79,7 +79,6 @@ void Walker::sWeight(double new_weight){
 
 }
 
-
 /** 
  * @return the overlap of the walker with the Trial
  */
@@ -95,5 +94,87 @@ double Walker::gOverlap() const{
 double Walker::gEL() const{
 
    return EL; 
+
+}
+
+ostream &operator<<(ostream &output,const Walker &walker_p){
+
+   for(int r = 0;r < Ly;++r){
+
+      for(int c = 0;c < Lx;++c)
+         output << walker_p[r*Lx + c] << " ";
+
+      output << endl;
+
+   }
+
+   return output;
+
+}
+
+/**
+ * get the energy between *this and walker_i <*this|H| walker_i>
+ * @param dtau timestep
+ * @param walker_i input Walker
+ */
+double Walker::exp_en(const Walker &walker_i){
+
+   double tmp = 0.0;
+
+   //first horizontal
+   for(int r = 0;r < Ly;++r){
+
+      for(int c = 0;c < Lx - 1;++c){
+
+         //Sz Sz
+         if( ((*this)[r*Lx + c] == walker_i[r*Lx + c]) && ((*this)[r*Lx + (c + 1)] == walker_i[r*Lx + (c + 1)]) ){
+
+            if( (*this)[r*Lx + c] == (*this)[r*Lx + (c + 1)] )//up up or down down
+               tmp += 0.25;
+            else //up down or down up
+               tmp -= 0.25;
+
+         }
+
+         //S+ S- (extra minus sign for sign problem)
+         if( ((*this)[r*Lx + c] != walker_i[r*Lx + c]) && ((*this)[r*Lx + (c + 1)] != walker_i[r*Lx + (c + 1)]) ){
+
+            if( (*this)[r*Lx + c] != (*this)[r*Lx + (c + 1)] )
+               tmp -= 0.5;
+
+         }
+
+      }
+
+   }
+
+   //then vertical
+   for(int c = 0;c < Lx;++c){
+
+      for(int r = 0;r < Ly - 1;++r){
+
+         //Sz Sz
+         if( ((*this)[r*Lx + c] == walker_i[r*Lx + c]) && ((*this)[(r + 1)*Lx + c] == walker_i[(r + 1)*Lx + c]) ){
+
+            if( (*this)[r*Lx + c] == (*this)[(r + 1)*Lx + c] )//up up or down down
+               tmp += 0.25;
+            else //up down or down up
+               tmp -= 0.25;
+
+         }
+
+         //S+ S-
+         if( ((*this)[r*Lx + c] != walker_i[r*Lx + c]) && ((*this)[(r + 1)*Lx + c] != walker_i[(r + 1)*Lx + c]) ){
+
+            if( (*this)[r*Lx + c] != (*this)[(r + 1)*Lx + c] )
+               tmp -= 0.5;
+
+         }
+
+      }
+
+   }
+
+   return tmp;
 
 }

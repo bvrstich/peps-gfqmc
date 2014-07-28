@@ -38,6 +38,8 @@ class Distribution : public vector<double> {
 
       const Walker &gwalker(int) const;
 
+      void fill(double,double);
+
    private:
 
       //!list of final walker states

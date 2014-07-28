@@ -18,6 +18,8 @@ using namespace btas;
  */
 class Walker : public vector< bool > {
 
+   friend ostream &operator<<(ostream &output,const Walker &walker_p);
+
    public:
 
       //empty contstructor
@@ -38,6 +40,8 @@ class Walker : public vector< bool > {
       double gOverlap() const;
 
       double gEL() const;
+
+      double exp_en(const Walker &);
 
   private:
 
