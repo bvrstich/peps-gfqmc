@@ -12,4 +12,8 @@
 #include "Walker.h"
 
 #include "Distribution.h"
-#include "SL_PEPS.h"
+
+#include "MPS.h"
+#include "compress.h"
+
+#include "Environment.h"

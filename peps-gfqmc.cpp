@@ -23,18 +23,23 @@ int main(int argc,char *argv[]){
    int d = atoi(argv[2]);
    int D = atoi(argv[3]);
 
+   int D_aux = atoi(argv[4]);
+
    //initialize the dimensions of the problem, set the trial
    global::init(D,d,L,L);
+   
+   //and some static objects
+   Environment::init(D,D_aux);
 
    Walker walker;
 
-   Distribution dist(walker);
+   PEPS<double> peps;
 
-   dist.fill(0.001,-62.86);
+   char filename[200];
+   sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",L,L,D);
 
-   cout << dist.normalize() << endl;
+   peps.load(filename);
 
-   for(int i = 0;i < 1000;++i)
-      cout << i << "\t" <<  dist.draw() << endl;
+   Environment::calc_env('H',peps,walker);
 
 }
