@@ -495,6 +495,16 @@ void MPS::fill(char option,const PEPS<double> &peps,const Walker &walker){
 
    if(option == 'b'){
 
+      for(int c = 0;c < Lx;++c){
+
+         int dim = peps(0,c).size()/2;
+
+         cout << walker[c] << endl;
+
+         blas::copy(dim,peps(0,c).data() + walker[c]*dim,1,(*this)[c].data(),1);
+
+      }
+
    }
 
 }

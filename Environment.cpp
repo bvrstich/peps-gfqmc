@@ -105,6 +105,19 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
 
       //construct bottom layer
       b[0].fill('b',peps,walker);
+
+
+
+      for(int i = 0;i < b[0].size();++i){
+
+         cout << endl;
+         cout << i << endl;
+         cout << endl;
+         cout << b[0][i] << endl;
+         cout << endl;
+         cout << peps(0,i) << endl;
+
+      }
 /*
       for(int r = 1;r < Ly - 1;++r){
 
