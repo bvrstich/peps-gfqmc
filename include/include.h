@@ -9,6 +9,7 @@
 #include "global.h"
 
 #include "PEPS.h"
+#include "SL_PEPS.h"
 #include "Walker.h"
 
 #include "Distribution.h"

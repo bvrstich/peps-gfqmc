@@ -40,6 +40,12 @@ int main(int argc,char *argv[]){
 
    peps.load(filename);
 
+   Environment::U.fill('H',peps,walker);
    Environment::calc_env('H',peps,walker);
+
+   Environment::U.fill('V',peps,walker);
+   Environment::calc_env('V',peps,walker);
+
+   Environment::test_env();
 
 }

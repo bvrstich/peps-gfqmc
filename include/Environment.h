@@ -31,6 +31,8 @@ class Environment {
       static vector< MPS > t;
       static vector< MPS > b;
 
+      static SL_PEPS U;
+
       //!auxiliary bond dimension for the environment contractions
       static int D_aux;
 

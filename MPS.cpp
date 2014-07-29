@@ -488,22 +488,232 @@ void MPS::normalize(){
 }
 
 /**
- * fill the MPS by taking the correct part of the PEPS
- * @param option 'b'ottom , 't'op, 'l'eft or 'r'ight
+ * fill a MPS object, by creating a single layer from contracting a peps with a physical vector
+ * @param row index of row
+ * @param slp single layer contracted peps
  */
-void MPS::fill(char option,const PEPS<double> &peps,const Walker &walker){
+void MPS::fill(char option,const SL_PEPS &slp) {
 
    if(option == 'b'){
 
-      for(int c = 0;c < Lx;++c){
+      //just a deep copy of slp bottom row
+      for(int col = 0;col < Lx;++col){
 
-         int dim = peps(0,c).size()/2;
+         int dim = slp(0,col).size();
 
-         cout << walker[c] << endl;
-
-         blas::copy(dim,peps(0,c).data() + walker[c]*dim,1,(*this)[c].data(),1);
+         blas::copy(dim,slp(0,col).data(),1,(*this)[col].data(),1);
 
       }
+
+   }
+   else if(option == 't'){
+
+      //just a deep copy of slp bottom row
+      for(int col = 0;col < Lx;++col){
+
+         int dim = slp(Ly-1,col).size();
+
+         blas::copy(dim,slp(Ly-1,col).data(),1,(*this)[col].data(),1);
+
+      }
+
+   }
+   else if(option == 'l'){
+
+      //just a deep copy of slp left column
+      for(int row = 0;row < Ly;++row){
+
+         int dim = slp(row,0).size();
+
+         blas::copy(dim,slp(row,0).data(),1,(*this)[row].data(),1);
+
+      }
+
+   }
+   else{//right
+
+      //just a deep copy of slp right column
+      for(int row = 0;row < Ly;++row){
+
+         int dim = slp(row,Lx-1).size();
+
+         blas::copy(dim,slp(row,Lx-1).data(),1,(*this)[row].data(),1);
+
+      }
+
+   }
+
+}
+
+/**
+ * act with an SL_PEPS row (basically an MPO) on this MPS, resulting MPS is returned as *this object
+ * @param uplo if == 'U' contract with the upper physical index of the MPO, if == 'L', contract with the lower
+ * @param option == 'H'orizontal or 'V'ertical
+ * @param rc the row/column index
+ * @param slp the SL_PEPS
+ */
+void MPS::gemv(char uplo,char option, int rc,const SL_PEPS &slp){
+
+   int DO = slp.gD();
+
+   int L = this->size();
+
+   if(option == 'H'){
+
+      if(uplo == 'U'){
+
+         //first site
+         TArray<double,5> tmp;
+
+         enum {i,j,k,l,m,n,o,p,q};
+
+         //dimensions of the new MPS
+         int d_phys = (*this)[0].shape(1);
+         int DL = 1;
+         int DR = (*this)[0].shape(2) * slp(rc,0).shape(3);
+
+         Contract(1.0,slp(rc,0),shape(i,j,k,l),(*this)[0],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         //middle sites
+         for(int col = 1;col < L - 1;++col){
+
+            DL = DR;
+            DR = (*this)[col].shape(2) * slp(rc,col).shape(3);
+
+            Contract(1.0,slp(rc,col),shape(i,j,k,l),(*this)[col],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+            (*this)[col] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         }
+
+         DL = DR;
+         DR = 1;
+
+         Contract(1.0,slp(rc,L - 1),shape(i,j,k,l),(*this)[L - 1],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+      }
+      else{//Lower index contraction
+
+         //first site
+         TArray<double,5> tmp;
+
+         enum {i,j,k,l,m,n,o,p,q};
+
+         //dimensions of the new MPS
+         int d_phys = (*this)[0].shape(1);
+         int DL = 1;
+         int DR = (*this)[0].shape(2) * slp(rc,0).shape(3);
+
+         Contract(1.0,slp(rc,0),shape(i,j,k,l),(*this)[0],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         //middle sites
+         for(int col = 1;col < L - 1;++col){
+
+            DL = DR;
+            DR = (*this)[col].shape(2) * slp(rc,col).shape(3);
+
+            Contract(1.0,slp(rc,col),shape(i,j,k,l),(*this)[col],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+            (*this)[col] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         }
+
+         DL = DR;
+         DR = 1;
+
+         Contract(1.0,slp(rc,L - 1),shape(i,j,k,l),(*this)[L - 1],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+      }
+
+      //vdim is increased
+      D *= DO;
+
+   }
+   else{// VERTICAL
+
+      if(uplo == 'U'){
+
+         //first site
+         TArray<double,5> tmp;
+
+         enum {i,j,k,l,m,n,o,p,q};
+
+         //dimensions of the new MPS
+         int d_phys = (*this)[0].shape(1);
+         int DL = 1;
+         int DR = (*this)[0].shape(2) * slp(0,rc).shape(3);
+
+         Contract(1.0,slp(0,rc),shape(i,j,k,l),(*this)[0],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         //middle sites
+         for(int row = 1;row < L - 1;++row){
+
+            DL = DR;
+            DR = (*this)[row].shape(2) * slp(row,rc).shape(3);
+
+            Contract(1.0,slp(row,rc),shape(i,j,k,l),(*this)[row],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+            (*this)[row] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         }
+
+         DL = DR;
+         DR = 1;
+
+         Contract(1.0,slp(L - 1,rc),shape(i,j,k,l),(*this)[L - 1],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
+
+         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+      }
+      else{//Lower index contraction
+
+         //first site
+         TArray<double,5> tmp;
+
+         enum {i,j,k,l,m,n,o,p,q};
+
+         //dimensions of the new MPS
+         int d_phys = (*this)[0].shape(1);
+         int DL = 1;
+         int DR = (*this)[0].shape(2) * slp(0,rc).shape(3);
+
+         Contract(1.0,slp(0,rc),shape(i,j,k,l),(*this)[0],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         //middle sites
+         for(int row = 1;row < L - 1;++row){
+
+            DL = DR;
+            DR = (*this)[row].shape(2) * slp(row,rc).shape(3);
+
+            Contract(1.0,slp(row,rc),shape(i,j,k,l),(*this)[row],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+            (*this)[row] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+         }
+
+         DL = DR;
+         DR = 1;
+
+         Contract(1.0,slp(L - 1,rc),shape(i,j,k,l),(*this)[L - 1],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
+
+         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
+
+      }
+
+      //vdim is increased
+      D *= DO;
 
    }
 

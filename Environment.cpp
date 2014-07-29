@@ -20,6 +20,8 @@ vector< MPS > Environment::r;
 vector< MPS > Environment::t;
 vector< MPS > Environment::b;
 
+SL_PEPS Environment::U;
+
 int Environment::D_aux;
 
 /** 
@@ -91,6 +93,8 @@ void Environment::init(int D,int D_aux_in){
    l[Lx-2] = MPS(D_aux);
    r[0] = MPS(D_aux);
 
+   U = SL_PEPS(D);
+
 }
 
 /**
@@ -104,94 +108,81 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
    if(option == 'H'){
 
       //construct bottom layer
-      b[0].fill('b',peps,walker);
+      b[0].fill('b',U);
 
-
-
-      for(int i = 0;i < b[0].size();++i){
-
-         cout << endl;
-         cout << i << endl;
-         cout << endl;
-         cout << b[0][i] << endl;
-         cout << endl;
-         cout << peps(0,i) << endl;
-
-      }
-/*
       for(int r = 1;r < Ly - 1;++r){
 
-         MPS tmp(b[myID][r - 1]);
+         MPS tmp(b[r - 1]);
 
          //apply to form MPS with bond dimension D^2
-         tmp.gemv('L','H',r,U[myID]);
+         tmp.gemv('L','H',r,U);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         b[myID][r].compress(D_aux,tmp,1);
+         b[r].compress(D_aux,tmp,1);
 
       }
 
       //then construct top layer
-      t[myID][Ly - 2].fill('t',U[myID]);
+      t[Ly - 2].fill('t',U);
 
       for(int r = Ly - 2;r > 0;--r){
 
          //apply to form MPS with bond dimension D^4
-         MPS tmp(t[myID][r]);
+         MPS tmp(t[r]);
 
-         tmp.gemv('U','H',r,U[myID]);
+         tmp.gemv('U','H',r,U);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         t[myID][r - 1].compress(D_aux,tmp,1);
+         t[r - 1].compress(D_aux,tmp,1);
 
       }
-*/
+
    }
    else{//Vertical
-/*
+
       //then left layer
-      l[myID][0].fill('l',U[myID]);
+      l[0].fill('l',U);
 
       for(int c = 1;c < Lx - 1;++c){
 
          //i'th col as MPO
-         MPS tmp(l[myID][c - 1]);
+         MPS tmp(l[c - 1]);
 
          //apply to form MPS with bond dimension D^4
-         tmp.gemv('L','V',c,U[myID]);
+         tmp.gemv('L','V',c,U);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         l[myID][c].compress(D_aux,tmp,1);
+         l[c].compress(D_aux,tmp,1);
 
       }
 
       //finally construct right layer
-      r[myID][Lx - 2].fill('r',U[myID]);
+      r[Lx - 2].fill('r',U);
 
       for(int c = Lx - 2;c > 0;--c){
 
          //apply to form MPS with bond dimension D^4
-         MPS tmp(r[myID][c]);
+         MPS tmp(r[c]);
 
-         tmp.gemv('U','V',c,U[myID]);
+         tmp.gemv('U','V',c,U);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         r[myID][c - 1].compress(D_aux,tmp,1);
+         r[c - 1].compress(D_aux,tmp,1);
 
       }
-*/
+
    }
 
 }
