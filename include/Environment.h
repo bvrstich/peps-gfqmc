@@ -31,7 +31,11 @@ class Environment {
       static vector< MPS > t;
       static vector< MPS > b;
 
+      //!contraction between current walker state and peps
       static SL_PEPS U;
+
+      //!contraction between inverted walker state and peps
+      static SL_PEPS I;
 
       //!auxiliary bond dimension for the environment contractions
       static int D_aux;

@@ -21,6 +21,7 @@ vector< MPS > Environment::t;
 vector< MPS > Environment::b;
 
 SL_PEPS Environment::U;
+SL_PEPS Environment::I;
 
 int Environment::D_aux;
 
@@ -94,6 +95,7 @@ void Environment::init(int D,int D_aux_in){
    r[0] = MPS(D_aux);
 
    U = SL_PEPS(D);
+   I = SL_PEPS(D);
 
 }
 

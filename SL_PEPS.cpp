@@ -94,10 +94,11 @@ int SL_PEPS::gD() const {
 /**
  * fill the SL_PEPS object by contracting a peps with a walker
  * @param option == 'H' keep regular order of indices
+ * @param inverted if true take the inverted walker state for contraction
  * @param peps input PEPS<> object
  * @param walker the Walker object
  */
-void SL_PEPS::fill(char option,const PEPS< double > &peps,const Walker &walker){
+void SL_PEPS::fill(char option,bool inverted,const PEPS< double > &peps,const Walker &walker){
 
    if(option == 'H'){
 
@@ -106,7 +107,10 @@ void SL_PEPS::fill(char option,const PEPS< double > &peps,const Walker &walker){
 
             int dim = peps(r,c).size()/2;
 
-            blas::copy(dim,peps(r,c).data() + walker[r*Lx + c]*dim,1,(*this)[r*Lx + c].data(),1);
+            if(inverted)
+               blas::copy(dim,peps(r,c).data() + (!walker[r*Lx + c])*dim,1,(*this)[r*Lx + c].data(),1);
+            else
+               blas::copy(dim,peps(r,c).data() + walker[r*Lx + c]*dim,1,(*this)[r*Lx + c].data(),1);
 
          }
 
@@ -122,7 +126,10 @@ void SL_PEPS::fill(char option,const PEPS< double > &peps,const Walker &walker){
 
             tmp.resize(peps(r,c).shape(1),peps(r,c).shape(2),peps(r,c).shape(3),peps(r,c).shape(4));
 
-            blas::copy(dim,peps(r,c).data() + walker[r*Lx + c]*dim,1,tmp.data(),1);
+            if(inverted)
+               blas::copy(dim,peps(r,c).data() + (!walker[r*Lx + c])*dim,1,tmp.data(),1);
+            else
+               blas::copy(dim,peps(r,c).data() + walker[r*Lx + c]*dim,1,tmp.data(),1);
 
             //PERMUTE!!
             Permute(tmp,shape(2,3,0,1),(*this)[r*Lx + c]);

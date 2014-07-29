@@ -35,7 +35,7 @@ class SL_PEPS : public vector< TArray<double,4> > {
       int gD() const;
 
       //fill by just overlap
-      void fill(char,const PEPS< double > &,const Walker &);
+      void fill(char,bool,const PEPS< double > &,const Walker &);
 
       const TArray<double,4> &operator()(int,int) const;
 
