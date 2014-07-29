@@ -568,33 +568,21 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    energy += 0.25 * cnt * overlap;
 
-/*
-
    // #################################################################
    // ### ---- from left to right: contract in mps/mpo fashion ---- ### 
    // #################################################################
 
    //calculate the single layer contractions first:
-   Environment::U[myID].fill('V',peps,*this);
-
-   Environment::Sx[myID].fill('V',peps,Sx,*this);
-   Environment::Sy[myID].fill('V',peps,Sy,*this);
-   Environment::Sz[myID].fill('V',peps,Sz,*this);
+   Environment::U.fill('V',false,peps,*this);
+   Environment::I.fill('V',true,peps,*this);
 
    //first construct the top and bottom (horizontal) environment layers
    Environment::calc_env('V',peps,*this);
 
    // -- (1) -- || left column: similar to overlap calculation
 
-   //first construct the right renormalized operators
-   vector< DArray<2> > R(Ly - 1);
-
-   //first the rightmost operator
-   DArray<4> tmp4;
-   DArray<3> tmp3;
-
-   //tmp comes out index (t,b)
-   Contract(1.0,Environment::r[myID][0][Ly - 1],shape(1),Environment::l[myID][0][Ly - 1],shape(1),0.0,tmp4);
+   //tmp comes out index (r,l)
+   Contract(1.0,Environment::r[0][Ly - 1],shape(1),Environment::l[0][Ly - 1],shape(1),0.0,tmp4);
 
    //reshape tmp to a 2-index array
    R[Ly - 2] = tmp4.reshape_clear(shape(Environment::r[myID][0][Ly - 1].shape(0),Environment::l[myID][0][Ly - 1].shape(0)));
