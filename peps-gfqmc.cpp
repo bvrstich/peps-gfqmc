@@ -31,16 +31,9 @@ int main(int argc,char *argv[]){
    //and some static objects
    Environment::init(D,D_aux);
 
-   Walker walker;
+   double dtau = 0.001;
+   int Nw = 1000;
 
-   PEPS<double> peps;
-
-   char filename[200];
-   sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",L,L,D);
-
-   peps.load(filename);
-
-   walker.calc_EL(peps);
-   cout << walker.gEL() << endl;
+   GFQMC gfqmc(dtau,Nw);
 
 }

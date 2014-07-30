@@ -18,3 +18,5 @@
 #include "compress.h"
 
 #include "Environment.h"
+
+#include "GFQMC.h"

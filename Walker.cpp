@@ -180,7 +180,7 @@ double Walker::exp_en(const Walker &walker_i){
 }
 
 /**
- * calculate the local energy expectation value
+ * calculate the local energy expectation value and overlap
  * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(const PEPS< double > &peps){

@@ -12,6 +12,8 @@ using std::complex;
 
 using namespace btas;
 
+#include "PEPS.h"
+
 namespace global {
 
    extern Random RN;
@@ -27,6 +29,9 @@ namespace global {
 
    //!virtual dimension of the trial
    extern int DT;
+
+   //!trial wavefunction
+   extern PEPS<double> peps;
 
    void init(int,int,int,int);
 

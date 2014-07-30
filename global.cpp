@@ -21,6 +21,8 @@ namespace global{
 
    int d;
 
+   PEPS<double> peps;
+
    Random RN;
 
    /**
@@ -37,6 +39,13 @@ namespace global{
       d = d_in;
 
       DT = DT_in;
+
+      char filename[200];
+      sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
+
+      peps.resize(Lx*Ly);
+      peps.load(filename);
+      peps.sD(DT_in);
 
    }
 

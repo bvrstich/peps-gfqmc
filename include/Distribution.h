@@ -22,11 +22,11 @@ class Distribution : public vector<double> {
 
       Distribution();
 
-      Distribution(const Walker &);
-
       Distribution(const Distribution &);
 
       virtual ~Distribution();
+
+      void construct(const Walker &,double,double);
 
       int gn() const;
 
@@ -37,8 +37,6 @@ class Distribution : public vector<double> {
       const vector< Walker > &glist() const;
 
       const Walker &gwalker(int) const;
-
-      void fill(double,double);
 
    private:
 
