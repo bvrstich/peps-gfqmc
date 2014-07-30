@@ -650,8 +650,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
       // 2) if contribution, construct new inverse on the left
       if( (*this)[row*Lx] != (*this)[(row + 1)*Lx] ){
 
-         LU.resize(Environment::r[0][row].shape(2),Environment::I(row,0).shape(3));
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I(row,0).data(),N,0.0,LU.data(),N);
+         LI.resize(Environment::r[0][row].shape(2),Environment::I(row,0).shape(3));
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I(row,0).data(),N,0.0,LI.data(),N);
 
       }
 

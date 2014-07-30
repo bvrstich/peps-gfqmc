@@ -41,5 +41,6 @@ int main(int argc,char *argv[]){
    peps.load(filename);
 
    walker.calc_EL(peps);
+   cout << walker.gEL() << endl;
 
 }
