@@ -29,7 +29,7 @@ class GFQMC {
       void PopulationControl(double);
 
       //Calculate the single walker projected energies, update the energy history, calculate the fluctuation metric, and the total projected energy
-      double gEP();
+      void sEP();
 
       //Write the projected energy, target energy
       void write(int,double);
@@ -44,6 +44,9 @@ class GFQMC {
 
       //!timestep
       double dtau;
+
+      //!projected energy at current timestep
+      double EP;
       
       //!The walkers
       std::vector<Walker> walker;

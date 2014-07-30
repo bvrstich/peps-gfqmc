@@ -32,8 +32,10 @@ int main(int argc,char *argv[]){
    Environment::init(D,D_aux);
 
    double dtau = 0.001;
-   int Nw = 1000;
+   int Nw = 1024;
 
    GFQMC gfqmc(dtau,Nw);
+
+   gfqmc.walk(1);
 
 }

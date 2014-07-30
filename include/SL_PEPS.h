@@ -41,6 +41,8 @@ class SL_PEPS : public vector< TArray<double,4> > {
 
       TArray<double,4> &operator()(int,int);
 
+      void reshape_horizontal();
+
    private:
 
       //!dimension of the bonds

@@ -45,6 +45,8 @@ class Walker : public vector< bool > {
 
       void calc_EL(const PEPS<double> &);
 
+      void save(const char *filename);
+
   private:
 
       //!The walker weight

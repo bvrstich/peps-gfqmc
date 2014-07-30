@@ -276,6 +276,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
       tmp3.clear();
       Contract(1.0,LU,shape(0),Environment::t[0][col],shape(0),0.0,tmp3);
 
+      M = tmp3.shape(0);
+      N = Environment::U(0,col).shape(0);
+      K = tmp3.shape(1) * tmp3.shape(2);
+
       //1) construct new unity on the left
       LU.resize(Environment::t[0][col].shape(2),Environment::U(0,col).shape(3));
       blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U(0,col).data(),N,0.0,LU.data(),N);
@@ -644,6 +648,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
       Contract(1.0,LU,shape(0),Environment::r[0][row],shape(0),0.0,tmp3);
 
       // 1) construct new unity on the left
+      M = tmp3.shape(0);
+      N = Environment::I(row,0).shape(0);
+      K = tmp3.shape(1) * tmp3.shape(2);
+
       LU.resize(Environment::r[0][row].shape(2),Environment::U(row,0).shape(3));
       blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U(row,0).data(),N,0.0,LU.data(),N);
 
@@ -667,7 +675,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       energy += 0.5 * Dot(LI,R[Ly-2]);
 
    }
-   
+
    // -- (2) -- now move from left to right calculating everything like an MPO/MPS expectation value
 
    for(int col = 1;col < Lx - 1;++col){
@@ -927,5 +935,19 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //finally set the local energy
    EL = energy/overlap;
+
+}
+
+/**
+ * save the walker to file
+ * @param filename name of the file
+ */
+void Walker::save(const char *filename){
+
+   ofstream fout(filename);
+
+   for(int row = 0;row < Ly;++row)
+      for(int col = 0;col < Lx;++col)
+         fout << row << "\t" << col << "\t" << (*this)[row*Lx +col] << endl;
 
 }
