@@ -32,7 +32,7 @@ class GFQMC {
       void sEP();
 
       //Write the projected energy, target energy
-      void write(int,double);
+      void write(int);
 
       //Setup the walkers
       void SetupWalkers();
@@ -47,6 +47,9 @@ class GFQMC {
 
       //!projected energy at current timestep
       double EP;
+
+      //!projected energy at current timestep, absolute value of all the contributions (all positive trial)
+      double EP_abs;
       
       //!The walkers
       std::vector<Walker> walker;

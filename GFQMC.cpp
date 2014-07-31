@@ -74,7 +74,7 @@ void GFQMC::walk(const int n_steps){
    output.close();
 
 #ifdef _DEBUG
-   cout << "Energy at start = " << EP << endl;
+   cout << "Energy at start = " << EP << "\t" << EP_abs << endl;
    cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -82,26 +82,21 @@ void GFQMC::walk(const int n_steps){
 
       //Propagate the walkers of each rank separately
       double wsum = propagate();
-/*
-      //Form the total sum of the walker weights and calculate the scaling for population control
-      double avgw = wsum / (double)walker.size();
 
+      //Form the total sum of the walker weights and calculate the scaling for population control
       double scaling = Nw / wsum;
 
-      double ET = log(scaling)/Trotter::dtau;
-
-      EP = gEP();
+      //calculate the energy
+      sEP();
 
 #ifdef _DEBUG
       cout << "        Step = " << step << endl;
       cout << "   # walkers = " << walker.size() << endl;
-      cout << " avg(weight) = " << avgw << endl;
-      cout << "         E_P = " << EP << endl;
-      cout << "         E_T = " << ET << endl;
+      cout << "         E_P = " << EP << "\t" << EP_abs << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
 
-      write(step,0.5 * std::real(EP + prev_EP), ET);
+      write(step);
 
       //Based on scaling, first control the population on each rank separately, and then balance the population over the ranks (uses MPI)
       PopulationControl(scaling);
@@ -123,7 +118,7 @@ void GFQMC::walk(const int n_steps){
       cout << "Minimal Overlap:\t" << min_ov << endl;
       cout << "Maximal Overlap:\t" << max_ov << endl;
 #endif
-*/
+
    }
 
 }
@@ -138,10 +133,21 @@ double GFQMC::propagate(){
    for(int i = 0;i < walker.size();i++){
 
       //construct distribution
+      dist.construct(walker[i],dtau,EP);
+      double nrm = dist.normalize();
 
       //draw new walker
+      int pick = dist.draw();
+
+      walker[i] = dist.gwalker(pick);
 
       //multiply weight
+      walker[i].multWeight(nrm);
+
+      //calculate new properties
+      walker[i].calc_EL(peps);
+
+      sum += walker[i].gWeight();
 
    }
 
@@ -153,7 +159,7 @@ double GFQMC::propagate(){
  * redistribute the weights to stabilize the walk, keep the population in check
  */
 void GFQMC::PopulationControl(double scaling){
-/*
+
    double minw = 1.0;
    double maxw = 1.0;
 
@@ -222,7 +228,7 @@ void GFQMC::PopulationControl(double scaling){
    cout << "The min. encountered weight is " << minw << " ." << endl;
    cout << "The max. encountered weight is " << maxw << " ." << endl;
 #endif
-*/
+
 }
 
 /**
@@ -233,32 +239,39 @@ void GFQMC::sEP(){
    double projE_num = 0.0;
    double projE_den = 0.0;
 
+   double projE_abs_num = 0.0;
+   double projE_abs_den = 0.0;
+
    for(int wi = 0;wi < walker.size();wi++){
 
       double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
       double overlap = walker[wi].gOverlap();
 
       //For the projected energy
-      projE_num += std::abs(walker[wi].gWeight() * w_loc_en * overlap);
-      projE_den += std::abs(walker[wi].gWeight() * overlap);
+      projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en * overlap;
+      projE_den += walker[wi].gsign() * walker[wi].gWeight() * overlap;
+
+      projE_abs_num += std::abs(walker[wi].gWeight() * w_loc_en * overlap);
+      projE_abs_den += std::abs(walker[wi].gWeight() * overlap);
 
    }
 
-   EP = -projE_num / projE_den;
+   EP = projE_num / projE_den;
+   EP_abs = -projE_abs_num / projE_abs_den;
 
 }
 
 /**
  * write output to file
  */
-void GFQMC::write(const int step,const double EP){
-/*
+void GFQMC::write(const int step){
+
    char filename[200];
    sprintf(filename,"output/%dx%d/D=%d.txt",Lx,Ly,DT);
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << EP_abs << endl;
    output.close();
-*/
+
 }

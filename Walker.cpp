@@ -23,6 +23,8 @@ Walker::Walker() : std::vector< bool >( Lx * Ly ){
 
    weight = 1.0;
 
+   sign = 1;
+
    for(int r = 0;r < Ly;++r)
       for(int c = 0;c < Lx;++c){
 
@@ -45,12 +47,23 @@ Walker::Walker(const Walker &walker) : std::vector< bool >(walker) {
    this->overlap = walker.gOverlap();
    this->EL = walker.gEL();
 
+   this->sign = walker.gsign();
+
 }
 
 /**
  * destructor
  */
 Walker::~Walker(){ }
+
+/**
+ * @return the sign of the walker
+ */
+int Walker::gsign() const {
+
+   return sign;
+
+}
 
 /** 
  * @return the weight corresponding to the walker
@@ -109,6 +122,15 @@ ostream &operator<<(ostream &output,const Walker &walker_p){
    }
 
    return output;
+
+}
+
+/**
+ * flip the sign of the walker
+ */
+void Walker::sign_flip(){
+
+   sign *= -1;
 
 }
 

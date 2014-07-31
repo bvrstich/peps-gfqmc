@@ -47,10 +47,17 @@ class Walker : public vector< bool > {
 
       void save(const char *filename);
 
+      int gsign() const;
+
+      void sign_flip();
+
   private:
 
       //!The walker weight
       double weight;
+
+      //!sign of the walker
+      int sign;
 
       //!The walker overlap with the trial wfn
       double overlap;
