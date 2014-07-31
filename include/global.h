@@ -30,6 +30,9 @@ namespace global {
    //!virtual dimension of the trial
    extern int DT;
 
+   //!number of omp threads
+   extern int omp_num_threads;
+
    //!trial wavefunction
    extern PEPS<double> peps;
 

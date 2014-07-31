@@ -28,6 +28,8 @@ GFQMC::GFQMC(double dtau_in,int Nw_in){
    this->dtau = dtau_in;
    this->Nw = Nw_in;
 
+   dist.resize(omp_num_threads);
+
    SetupWalkers();
 
 }
@@ -45,14 +47,17 @@ void GFQMC::SetupWalkers(){
    Walker init_walker;
    init_walker.calc_EL(peps);
 
-   dist.construct(init_walker,dtau,init_walker.gEL());
-   dist.normalize();
+   dist[0].construct(init_walker,dtau,init_walker.gEL());
+   dist[0].normalize();
 
+   walker.resize(Nw);
+
+#pragma omp parallel for
    for(int i = 0;i < Nw;++i){
 
-      int pick = dist.draw();
+      int pick = dist[0].draw();
 
-      walker.push_back(dist.gwalker(pick));
+      walker[i] = dist[0].gwalker(pick);
 
       walker[i].calc_EL(peps);
 
@@ -130,16 +135,23 @@ double GFQMC::propagate(){
 
    double sum = 0.0;
 
+#pragma omp parallel for reduction(+: sum)
    for(int i = 0;i < walker.size();i++){
 
+#ifdef _OPENMP
+      int myID = omp_get_thread_num();
+#else
+      int myID = 0;
+#endif
+
       //construct distribution
-      dist.construct(walker[i],dtau,EP);
-      double nrm = dist.normalize();
+      dist[myID].construct(walker[i],dtau,EP);
+      double nrm = dist[myID].normalize();
 
       //draw new walker
-      int pick = dist.draw();
+      int pick = dist[myID].draw();
 
-      walker[i] = dist.gwalker(pick);
+      walker[i] = dist[myID].gwalker(pick);
 
       //multiply weight
       walker[i].multWeight(nrm);

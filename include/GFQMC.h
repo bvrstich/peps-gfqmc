@@ -55,7 +55,7 @@ class GFQMC {
       std::vector<Walker> walker;
 
       //!Distribution of possible final states given a walker state
-      Distribution dist;
+      std::vector< Distribution > dist;
       
 };
 

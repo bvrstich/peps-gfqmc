@@ -26,16 +26,16 @@ class Environment {
       static void test_env();
 
       //!stores an array environment MPS's for l(eft) , r(ight), t(op) and b(ottom)
-      static vector< MPS > l;
-      static vector< MPS > r;
-      static vector< MPS > t;
-      static vector< MPS > b;
+      static vector< vector< MPS > > l;
+      static vector< vector< MPS > > r;
+      static vector< vector< MPS > > t;
+      static vector< vector< MPS > > b;
 
       //!contraction between current walker state and peps
-      static SL_PEPS U;
+      static vector< SL_PEPS > U;
 
       //!contraction between inverted walker state and peps
-      static SL_PEPS I;
+      static vector< SL_PEPS > I;
 
       //!auxiliary bond dimension for the environment contractions
       static int D_aux;

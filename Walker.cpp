@@ -206,6 +206,12 @@ double Walker::exp_en(const Walker &walker_i){
  * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(const PEPS< double > &peps){
+   
+#ifdef _OPENMP
+   int myID = omp_get_thread_num();
+#else
+   int myID = 0;
+#endif
 
    // ---- || evaluate the expectation values in an MPO/MPS manner, first from bottom to top, then left to right || ----
 
@@ -214,8 +220,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
    int M,N,K;
 
    //calculate the single layer contractions first:
-   Environment::U.fill('H',false,peps,*this);
-   Environment::I.fill('H',true,peps,*this);
+   Environment::U[myID].fill('H',false,peps,*this);
+   Environment::I[myID].fill('H',true,peps,*this);
 
    //first construct the top and bottom (horizontal) environment layers
    Environment::calc_env('H',peps,*this);
@@ -234,18 +240,18 @@ void Walker::calc_EL(const PEPS< double > &peps){
    DArray<3> tmp3;
 
    //tmp comes out index (t,b)
-   Contract(1.0,Environment::t[0][Lx - 1],shape(1),Environment::b[0][Lx - 1],shape(1),0.0,tmp4);
+   Contract(1.0,Environment::t[myID][0][Lx - 1],shape(1),Environment::b[myID][0][Lx - 1],shape(1),0.0,tmp4);
 
    //reshape tmp to a 2-index array
-   R[Lx - 2] = tmp4.reshape_clear(shape(Environment::t[0][Lx - 1].shape(0),Environment::b[0][Lx - 1].shape(0)));
+   R[Lx - 2] = tmp4.reshape_clear(shape(Environment::t[myID][0][Lx - 1].shape(0),Environment::b[myID][0][Lx - 1].shape(0)));
 
    //now construct the rest
    for(int col = Lx - 2;col > 0;--col){
 
       tmp3.clear();
-      Contract(1.0,Environment::t[0][col],shape(2),R[col],shape(0),0.0,tmp3);
+      Contract(1.0,Environment::t[myID][0][col],shape(2),R[col],shape(0),0.0,tmp3);
 
-      Contract(1.0,tmp3,shape(1,2),Environment::b[0][col],shape(1,2),0.0,R[col-1]);
+      Contract(1.0,tmp3,shape(1,2),Environment::b[myID][0][col],shape(1,2),0.0,R[col-1]);
 
    }
 
@@ -256,17 +262,17 @@ void Walker::calc_EL(const PEPS< double > &peps){
    TArray<double,5> tmp5;
 
    //tmp comes out index (t,b)
-   Contract(1.0,Environment::t[0][0],shape(1),Environment::U(0,0),shape(1),0.0,tmp5);
+   Contract(1.0,Environment::t[myID][0][0],shape(1),Environment::U[myID](0,0),shape(1),0.0,tmp5);
 
-   LU = tmp5.reshape_clear( shape(Environment::t[0][0].shape(2),Environment::U(0,0).shape(3)) );
+   LU = tmp5.reshape_clear( shape(Environment::t[myID][0][0].shape(2),Environment::U[myID](0,0).shape(3)) );
 
    //only calculate LI if it contributes
    if( (*this)[0] != (*this)[1] ){
 
       //tmp comes out index (t,b)
-      Contract(1.0,Environment::t[0][0],shape(1),Environment::I(0,0),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::t[myID][0][0],shape(1),Environment::I[myID](0,0),shape(1),0.0,tmp5);
 
-      LI = tmp5.reshape_clear( shape(Environment::t[0][0].shape(2),Environment::I(0,0).shape(3)) );
+      LI = tmp5.reshape_clear( shape(Environment::t[myID][0][0].shape(2),Environment::I[myID](0,0).shape(3)) );
 
    }
 
@@ -280,14 +286,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,Environment::t[0][col],shape(2),R[col],shape(0),0.0,tmp3);
+         Contract(1.0,Environment::t[myID][0][col],shape(2),R[col],shape(0),0.0,tmp3);
 
          // 1) paste I to the right
          M = tmp3.shape(0);
-         N = Environment::I(0,col).shape(0);
+         N = Environment::I[myID](0,col).shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I(0,col).data(),K,0.0,R[col-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I[myID](0,col).data(),K,0.0,R[col-1].data(),N);
 
          //contract with left LI 
          energy += 0.5 * Dot(LI,R[col - 1]);
@@ -296,21 +302,21 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //construct left renormalized operators for next site: first paste top to Left unity
       tmp3.clear();
-      Contract(1.0,LU,shape(0),Environment::t[0][col],shape(0),0.0,tmp3);
+      Contract(1.0,LU,shape(0),Environment::t[myID][0][col],shape(0),0.0,tmp3);
 
       M = tmp3.shape(0);
-      N = Environment::U(0,col).shape(0);
+      N = Environment::U[myID](0,col).shape(0);
       K = tmp3.shape(1) * tmp3.shape(2);
 
       //1) construct new unity on the left
-      LU.resize(Environment::t[0][col].shape(2),Environment::U(0,col).shape(3));
-      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U(0,col).data(),N,0.0,LU.data(),N);
+      LU.resize(Environment::t[myID][0][col].shape(2),Environment::U[myID](0,col).shape(3));
+      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U[myID](0,col).data(),N,0.0,LU.data(),N);
 
       //2) if it contributes, calculate inverse on the left
       if((*this)[col] != (*this)[col + 1]){
 
-         LI.resize(Environment::t[0][col].shape(2),Environment::I(0,col).shape(3));
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I(0,col).data(),N,0.0,LI.data(),N);
+         LI.resize(Environment::t[myID][0][col].shape(2),Environment::I[myID](0,col).shape(3));
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I[myID](0,col).data(),N,0.0,LI.data(),N);
 
       }
 
@@ -319,9 +325,9 @@ void Walker::calc_EL(const PEPS< double > &peps){
    //last site of bottom row: close down LI
    if((*this)[Lx - 2] != (*this)[Lx - 1]){
 
-      Contract(1.0,Environment::t[0][Lx-1],shape(1),Environment::I(0,Lx-1),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::t[myID][0][Lx-1],shape(1),Environment::I[myID](0,Lx-1),shape(1),0.0,tmp5);
 
-      R[Lx-2] = tmp5.reshape_clear(shape(Environment::t[0][Lx-1].shape(0),Environment::I(0,Lx-1).shape(0)));
+      R[Lx-2] = tmp5.reshape_clear(shape(Environment::t[myID][0][Lx-1].shape(0),Environment::I[myID](0,Lx-1).shape(0)));
 
       energy += 0.5 * Dot(LI,R[Lx-2]);
 
@@ -342,14 +348,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //paste top environment on
       tmp5.clear();
-      Contract(1.0,Environment::t[row][Lx - 1],shape(1),Environment::U(row,Lx-1),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::t[myID][row][Lx - 1],shape(1),Environment::U[myID](row,Lx-1),shape(1),0.0,tmp5);
 
       //then bottom enviroment
       TArray<double,6> tmp6;
-      Contract(1.0,tmp5,shape(3),Environment::b[row-1][Lx-1],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),Environment::b[myID][row-1][Lx-1],shape(1),0.0,tmp6);
 
       //move to a DArray<3> object
-      RO[Lx - 2] = tmp6.reshape_clear(shape(Environment::t[row][Lx - 1].shape(0),Environment::U(row,Lx-1).shape(0),Environment::b[row-1][Lx - 1].shape(0)));
+      RO[Lx - 2] = tmp6.reshape_clear(shape(Environment::t[myID][row][Lx - 1].shape(0),Environment::U[myID](row,Lx-1).shape(0),Environment::b[myID][row-1][Lx - 1].shape(0)));
 
       DArray<4> I4;
       DArray<4> I4bis;
@@ -358,15 +364,15 @@ void Walker::calc_EL(const PEPS< double > &peps){
       for(int col = Lx-2;col > 0;--col){
 
          I4.clear();
-         Contract(1.0,Environment::t[row][col],shape(2),RO[col],shape(0),0.0,I4);
+         Contract(1.0,Environment::t[myID][row][col],shape(2),RO[col],shape(0),0.0,I4);
 
          enum {i,j,k,o,m,n};
 
          I4bis.clear();
-         Contract(1.0,I4,shape(i,j,k,o),Environment::U(row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
+         Contract(1.0,I4,shape(i,j,k,o),Environment::U[myID](row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
 
          RO[col-1].clear();
-         Contract(1.0,I4bis,shape(2,3),Environment::b[row-1][col],shape(1,2),0.0,RO[col-1]);
+         Contract(1.0,I4bis,shape(2,3),Environment::b[myID][row-1][col],shape(1,2),0.0,RO[col-1]);
 
       }
 
@@ -377,28 +383,28 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //paste top environment on local Sz
       tmp5.clear();
-      Contract(1.0,Environment::t[row][0],shape(1),Environment::U(row,0),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::t[myID][row][0],shape(1),Environment::U[myID](row,0),shape(1),0.0,tmp5);
 
       //then bottom enviroment on that
       tmp6.clear();
-      Contract(1.0,tmp5,shape(3),Environment::b[row-1][0],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),Environment::b[myID][row-1][0],shape(1),0.0,tmp6);
 
       //move to a DArray<3> object: order (top-env,peps-row,bottom-env)
-      LOU = tmp6.reshape_clear(shape(Environment::t[row][0].shape(2),Environment::U(row,0).shape(3),Environment::b[row-1][0].shape(2)));
+      LOU = tmp6.reshape_clear(shape(Environment::t[myID][row][0].shape(2),Environment::U[myID](row,0).shape(3),Environment::b[myID][row-1][0].shape(2)));
 
       // 2) construct left operator with inverted spin if it contributes
       if((*this)[row*Lx] != (*this)[row*Lx + 1]){
 
          //paste top environment on local inverted Sz
          tmp5.clear();
-         Contract(1.0,Environment::t[row][0],shape(1),Environment::I(row,0),shape(1),0.0,tmp5);
+         Contract(1.0,Environment::t[myID][row][0],shape(1),Environment::I[myID](row,0),shape(1),0.0,tmp5);
 
          //then bottom enviroment on that
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),Environment::b[row-1][0],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),Environment::b[myID][row-1][0],shape(1),0.0,tmp6);
 
          //move to a DArray<3> object: order (top-env,peps-row,bottom-env)
-         LOI = tmp6.reshape_clear(shape(Environment::t[row][0].shape(2),Environment::I(row,0).shape(3),Environment::b[row-1][0].shape(2)));
+         LOI = tmp6.reshape_clear(shape(Environment::t[myID][row][0].shape(2),Environment::I[myID](row,0).shape(3),Environment::b[myID][row-1][0].shape(2)));
 
       }
 
@@ -412,12 +418,12 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
             //first add top to the right side, put it in I4
             I4.clear();
-            Contract(1.0,Environment::t[row][col],shape(2),RO[col],shape(0),0.0,I4);
+            Contract(1.0,Environment::t[myID][row][col],shape(2),RO[col],shape(0),0.0,I4);
 
             I4bis.clear();
-            Contract(1.0,I4,shape(i,j,k,o),Environment::I(row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
+            Contract(1.0,I4,shape(i,j,k,o),Environment::I[myID](row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
 
-            Contract(1.0,I4bis,shape(2,3),Environment::b[row-1][col],shape(1,2),0.0,RO[col-1]);
+            Contract(1.0,I4bis,shape(2,3),Environment::b[myID][row-1][col],shape(1,2),0.0,RO[col-1]);
 
             //expectation value:
             energy += 0.5 * Dot(LOI,RO[col-1]);
@@ -428,21 +434,21 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //first attach top to left unity
          I4.clear();
-         Contract(1.0,Environment::t[row][col],shape(0),LOU,shape(0),0.0,I4);
+         Contract(1.0,Environment::t[myID][row][col],shape(0),LOU,shape(0),0.0,I4);
 
          // 1) construct new left unity
-         Contract(1.0,I4,shape(i,j,k,o),Environment::U(row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
+         Contract(1.0,I4,shape(i,j,k,o),Environment::U[myID](row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
 
          LOU.clear();
-         Contract(1.0,I4bis,shape(2,3),Environment::b[row-1][col],shape(0,1),0.0,LOU);
+         Contract(1.0,I4bis,shape(2,3),Environment::b[myID][row-1][col],shape(0,1),0.0,LOU);
 
          // 2) if it contributes, construct new left inverted 
          if((*this)[row*Lx + col] != (*this)[row*Lx + col + 1]){
 
-            Contract(1.0,I4,shape(i,j,k,o),Environment::I(row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
+            Contract(1.0,I4,shape(i,j,k,o),Environment::I[myID](row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
 
             LOI.clear();
-            Contract(1.0,I4bis,shape(2,3),Environment::b[row-1][col],shape(0,1),0.0,LOI);
+            Contract(1.0,I4bis,shape(2,3),Environment::b[myID][row-1][col],shape(0,1),0.0,LOI);
 
          }
 
@@ -453,13 +459,13 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //paste top environment on
          tmp5.clear();
-         Contract(1.0,Environment::t[row][Lx - 1],shape(1),Environment::I(row,Lx-1),shape(1),0.0,tmp5);
+         Contract(1.0,Environment::t[myID][row][Lx - 1],shape(1),Environment::I[myID](row,Lx-1),shape(1),0.0,tmp5);
 
          //then bottom enviroment
-         Contract(1.0,tmp5,shape(3),Environment::b[row-1][Lx-1],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),Environment::b[myID][row-1][Lx-1],shape(1),0.0,tmp6);
 
          //move to a DArray<3> object
-         RO[Lx - 2] = tmp6.reshape_clear(shape(Environment::t[row][Lx - 1].shape(0),Environment::I(row,Lx-1).shape(0),Environment::b[row-1][Lx - 1].shape(0)));
+         RO[Lx - 2] = tmp6.reshape_clear(shape(Environment::t[myID][row][Lx - 1].shape(0),Environment::I[myID](row,Lx-1).shape(0),Environment::b[myID][row-1][Lx - 1].shape(0)));
 
          //add to energy
          energy += 0.5 * Dot(LOI,RO[Lx - 2]);
@@ -474,19 +480,19 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //tmp comes out index (t,b)
    tmp4.clear();
-   Contract(1.0,Environment::t[Ly-2][Lx - 1],shape(1),Environment::b[Ly-2][Lx - 1],shape(1),0.0,tmp4);
+   Contract(1.0,Environment::t[myID][Ly-2][Lx - 1],shape(1),Environment::b[myID][Ly-2][Lx - 1],shape(1),0.0,tmp4);
 
    //reshape tmp to a 2-index array
-   R[Lx - 2] = tmp4.reshape_clear(shape(Environment::t[Ly-2][Lx - 1].shape(0),Environment::b[Ly-2][Lx - 1].shape(0)));
+   R[Lx - 2] = tmp4.reshape_clear(shape(Environment::t[myID][Ly-2][Lx - 1].shape(0),Environment::b[myID][Ly-2][Lx - 1].shape(0)));
 
    //now construct the rest
    for(int col = Lx - 2;col > 0;--col){
 
       tmp3.clear();
-      Contract(1.0,Environment::t[Ly-2][col],shape(2),R[col],shape(0),0.0,tmp3);
+      Contract(1.0,Environment::t[myID][Ly-2][col],shape(2),R[col],shape(0),0.0,tmp3);
 
       R[col - 1].clear();
-      Contract(1.0,tmp3,shape(1,2),Environment::b[Ly-2][col],shape(1,2),0.0,R[col-1]);
+      Contract(1.0,tmp3,shape(1,2),Environment::b[myID][Ly-2][col],shape(1,2),0.0,R[col-1]);
 
    }
    
@@ -494,17 +500,17 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //unity
    tmp5.clear();
-   Contract(1.0,Environment::U(Ly-1,0),shape(2),Environment::b[Ly-2][0],shape(1),0.0,tmp5);
+   Contract(1.0,Environment::U[myID](Ly-1,0),shape(2),Environment::b[myID][Ly-2][0],shape(1),0.0,tmp5);
 
-   LU = tmp5.reshape_clear(shape(Environment::U(Ly-1,0).shape(3),Environment::b[Ly-2][0].shape(2)));
+   LU = tmp5.reshape_clear(shape(Environment::U[myID](Ly-1,0).shape(3),Environment::b[myID][Ly-2][0].shape(2)));
 
    //inverse if it contributes
    if( (*this)[(Ly - 1)*Lx] != (*this)[(Ly - 1)*Lx + 1]){
 
       tmp5.clear();
-      Contract(1.0,Environment::I(Ly-1,0),shape(2),Environment::b[Ly-2][0],shape(1),0.0,tmp5);
+      Contract(1.0,Environment::I[myID](Ly-1,0),shape(2),Environment::b[myID][Ly-2][0],shape(1),0.0,tmp5);
 
-      LI = tmp5.reshape_clear(shape(Environment::I(Ly-1,0).shape(3),Environment::b[Ly-2][0].shape(2)));
+      LI = tmp5.reshape_clear(shape(Environment::I[myID](Ly-1,0).shape(3),Environment::b[myID][Ly-2][0].shape(2)));
 
    }
 
@@ -516,14 +522,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //construct the right intermediate contraction (paste bottom to right)
          tmp3.clear();
-         Contract(1.0,Environment::b[Ly-2][col],shape(2),R[col],shape(1),0.0,tmp3);
+         Contract(1.0,Environment::b[myID][Ly-2][col],shape(2),R[col],shape(1),0.0,tmp3);
 
          // 1) paste Sx to the right
-         M = Environment::I(Ly-1,col).shape(0);
+         M = Environment::I[myID](Ly-1,col).shape(0);
          N = tmp3.shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I(Ly-1,col).data(),K,tmp3.data(),K,0.0,R[col-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I[myID](Ly-1,col).data(),K,tmp3.data(),K,0.0,R[col-1].data(),N);
 
          //contract with left LI 
          energy += 0.5 * Dot(LI,R[col - 1]);
@@ -532,22 +538,22 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //construct left renormalized operators for next site: first paste bottom to Left unity
       tmp3.clear();
-      Contract(1.0,LU,shape(1),Environment::b[Ly-2][col],shape(0),0.0,tmp3);
+      Contract(1.0,LU,shape(1),Environment::b[myID][Ly-2][col],shape(0),0.0,tmp3);
 
       // 1) construct new left unity operator
-      LU.resize(Environment::U(Ly-1,col).shape(3),Environment::b[Ly-2][col].shape(2));
+      LU.resize(Environment::U[myID](Ly-1,col).shape(3),Environment::b[myID][Ly-2][col].shape(2));
 
-      M = Environment::U(Ly-1,col).shape(3);
+      M = Environment::U[myID](Ly-1,col).shape(3);
       N = tmp3.shape(2);
       K = tmp3.shape(0) * tmp3.shape(1);
 
-      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::U(Ly-1,col).data(),M,tmp3.data(),N,0.0,LU.data(),N);
+      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::U[myID](Ly-1,col).data(),M,tmp3.data(),N,0.0,LU.data(),N);
 
       // 2) if it contributes, construct new left LI
       if( (*this)[(Ly - 1)*Lx + col] != (*this)[(Ly - 1)*Lx + col + 1]){
 
-         LI.resize(Environment::I(Ly-1,col).shape(3),Environment::b[Ly-2][col].shape(2));
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::I(Ly-1,col).data(),M,tmp3.data(),N,0.0,LI.data(),N);
+         LI.resize(Environment::I[myID](Ly-1,col).shape(3),Environment::b[myID][Ly-2][col].shape(2));
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::I[myID](Ly-1,col).data(),M,tmp3.data(),N,0.0,LI.data(),N);
 
       }
 
@@ -563,10 +569,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //tmp comes out index (t,b)
       tmp5.clear();
-      Contract(1.0,Environment::I(Ly-1,Lx-1),shape(2),Environment::b[Ly-2][Lx - 1],shape(1),0.0,tmp5);
+      Contract(1.0,Environment::I[myID](Ly-1,Lx-1),shape(2),Environment::b[myID][Ly-2][Lx - 1],shape(1),0.0,tmp5);
 
       //reshape tmp to a 2-index array
-      R[Lx - 2] = tmp5.reshape_clear(shape(Environment::I(Ly-1,Lx-1).shape(0),Environment::b[Ly-2][Lx - 1].shape(0)));
+      R[Lx - 2] = tmp5.reshape_clear(shape(Environment::I[myID](Ly-1,Lx-1).shape(0),Environment::b[myID][Ly-2][Lx - 1].shape(0)));
 
       //energy
       energy += 0.5 * Dot(LI,R[Lx-2]);
@@ -599,8 +605,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
    // #################################################################
 
    //calculate the single layer contractions first:
-   Environment::U.fill('V',false,peps,*this);
-   Environment::I.fill('V',true,peps,*this);
+   Environment::U[myID].fill('V',false,peps,*this);
+   Environment::I[myID].fill('V',true,peps,*this);
 
    //first construct the top and bottom (horizontal) environment layers
    Environment::calc_env('V',peps,*this);
@@ -608,18 +614,18 @@ void Walker::calc_EL(const PEPS< double > &peps){
    // -- (1) -- || left column: similar to overlap calculation
 
    //tmp comes out index (r,l)
-   Contract(1.0,Environment::r[0][Ly - 1],shape(1),Environment::l[0][Ly - 1],shape(1),0.0,tmp4);
+   Contract(1.0,Environment::r[myID][0][Ly - 1],shape(1),Environment::l[myID][0][Ly - 1],shape(1),0.0,tmp4);
 
    //reshape tmp to a 2-index array
-   R[Ly - 2] = tmp4.reshape_clear(shape(Environment::r[0][Ly - 1].shape(0),Environment::l[0][Ly - 1].shape(0)));
+   R[Ly - 2] = tmp4.reshape_clear(shape(Environment::r[myID][0][Ly - 1].shape(0),Environment::l[myID][0][Ly - 1].shape(0)));
 
    //now construct the rest
    for(int row = Ly - 2;row > 0;--row){
 
       tmp3.clear();
-      Contract(1.0,Environment::r[0][row],shape(2),R[row],shape(0),0.0,tmp3);
+      Contract(1.0,Environment::r[myID][0][row],shape(2),R[row],shape(0),0.0,tmp3);
 
-      Contract(1.0,tmp3,shape(1,2),Environment::l[0][row],shape(1,2),0.0,R[row-1]);
+      Contract(1.0,tmp3,shape(1,2),Environment::l[myID][0][row],shape(1,2),0.0,R[row-1]);
 
    }
 
@@ -627,18 +633,18 @@ void Walker::calc_EL(const PEPS< double > &peps){
    tmp5.clear();
 
    //unity
-   Contract(1.0,Environment::r[0][0],shape(1),Environment::U(0,0),shape(1),0.0,tmp5);
+   Contract(1.0,Environment::r[myID][0][0],shape(1),Environment::U[myID](0,0),shape(1),0.0,tmp5);
 
-   LU = tmp5.reshape_clear(shape(Environment::r[0][0].shape(2),Environment::U(0,0).shape(3)));
+   LU = tmp5.reshape_clear(shape(Environment::r[myID][0][0].shape(2),Environment::U[myID](0,0).shape(3)));
 
    //inverse if it contributes:
    if( (*this)[0] != (*this)[Lx]){
 
       tmp5.clear();
 
-      Contract(1.0,Environment::r[0][0],shape(1),Environment::I(0,0),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::r[myID][0][0],shape(1),Environment::I[myID](0,0),shape(1),0.0,tmp5);
 
-      LI = tmp5.reshape_clear(shape(Environment::r[0][0].shape(2),Environment::I(0,0).shape(3)));
+      LI = tmp5.reshape_clear(shape(Environment::r[myID][0][0].shape(2),Environment::I[myID](0,0).shape(3)));
 
    }
 
@@ -651,14 +657,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,Environment::r[0][row],shape(2),R[row],shape(0),0.0,tmp3);
+         Contract(1.0,Environment::r[myID][0][row],shape(2),R[row],shape(0),0.0,tmp3);
 
          // 1) paste Sx to the right
          M = tmp3.shape(0);
-         N = Environment::I(row,0).shape(0);
+         N = Environment::I[myID](row,0).shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I(row,0).data(),K,0.0,R[row-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I[myID](row,0).data(),K,0.0,R[row-1].data(),N);
 
          //contract with left Sx
          energy += 0.5 * Dot(LI,R[row - 1]);
@@ -667,21 +673,21 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //construct left renormalized operators for next site: first paste top to Left unity
       tmp3.clear();
-      Contract(1.0,LU,shape(0),Environment::r[0][row],shape(0),0.0,tmp3);
+      Contract(1.0,LU,shape(0),Environment::r[myID][0][row],shape(0),0.0,tmp3);
 
       // 1) construct new unity on the left
       M = tmp3.shape(0);
-      N = Environment::I(row,0).shape(0);
+      N = Environment::I[myID](row,0).shape(0);
       K = tmp3.shape(1) * tmp3.shape(2);
 
-      LU.resize(Environment::r[0][row].shape(2),Environment::U(row,0).shape(3));
-      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U(row,0).data(),N,0.0,LU.data(),N);
+      LU.resize(Environment::r[myID][0][row].shape(2),Environment::U[myID](row,0).shape(3));
+      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::U[myID](row,0).data(),N,0.0,LU.data(),N);
 
       // 2) if contribution, construct new inverse on the left
       if( (*this)[row*Lx] != (*this)[(row + 1)*Lx] ){
 
-         LI.resize(Environment::r[0][row].shape(2),Environment::I(row,0).shape(3));
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I(row,0).data(),N,0.0,LI.data(),N);
+         LI.resize(Environment::r[myID][0][row].shape(2),Environment::I[myID](row,0).shape(3));
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),M,Environment::I[myID](row,0).data(),N,0.0,LI.data(),N);
 
       }
 
@@ -690,9 +696,9 @@ void Walker::calc_EL(const PEPS< double > &peps){
    //last site of left column: close down the left LI if necessary
    if( (*this)[(Ly - 2)*Lx] != (*this)[(Ly - 1)*Lx] ){
 
-      Contract(1.0,Environment::r[0][Ly-1],shape(1),Environment::I(Ly-1,0),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::r[myID][0][Ly-1],shape(1),Environment::I[myID](Ly-1,0),shape(1),0.0,tmp5);
 
-      R[Ly-2] = tmp5.reshape_clear(shape(Environment::r[0][Ly-1].shape(0),Environment::I(Ly-1,0).shape(0)));
+      R[Ly-2] = tmp5.reshape_clear(shape(Environment::r[myID][0][Ly-1].shape(0),Environment::I[myID](Ly-1,0).shape(0)));
 
       energy += 0.5 * Dot(LI,R[Ly-2]);
 
@@ -706,14 +712,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //paste right environment on
       tmp5.clear();
-      Contract(1.0,Environment::r[col][Ly - 1],shape(1),Environment::U(Ly-1,col),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::r[myID][col][Ly - 1],shape(1),Environment::U[myID](Ly-1,col),shape(1),0.0,tmp5);
 
       //then left enviroment
       TArray<double,6> tmp6;
-      Contract(1.0,tmp5,shape(3),Environment::l[col-1][Ly-1],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),Environment::l[myID][col-1][Ly-1],shape(1),0.0,tmp6);
 
       //move to a DArray<3> object
-      RO[Ly - 2] = tmp6.reshape_clear(shape(Environment::r[col][Ly - 1].shape(0),Environment::U(Ly-1,col).shape(0),Environment::l[col-1][Ly - 1].shape(0)));
+      RO[Ly - 2] = tmp6.reshape_clear(shape(Environment::r[myID][col][Ly - 1].shape(0),Environment::U[myID](Ly-1,col).shape(0),Environment::l[myID][col-1][Ly - 1].shape(0)));
 
       DArray<4> I4;
       DArray<4> I4bis;
@@ -722,15 +728,15 @@ void Walker::calc_EL(const PEPS< double > &peps){
       for(int row = Ly-2;row > 0;--row){
 
          I4.clear();
-         Contract(1.0,Environment::r[col][row],shape(2),RO[row],shape(0),0.0,I4);
+         Contract(1.0,Environment::r[myID][col][row],shape(2),RO[row],shape(0),0.0,I4);
 
          enum {i,j,k,o,m,n};
 
          I4bis.clear();
-         Contract(1.0,I4,shape(i,j,k,o),Environment::U(row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
+         Contract(1.0,I4,shape(i,j,k,o),Environment::U[myID](row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
 
          RO[row-1].clear();
-         Contract(1.0,I4bis,shape(2,3),Environment::l[col-1][row],shape(1,2),0.0,RO[row-1]);
+         Contract(1.0,I4bis,shape(2,3),Environment::l[myID][col-1][row],shape(1,2),0.0,RO[row-1]);
 
       }
 
@@ -741,27 +747,27 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //paste left environment on local Sz
       tmp5.clear();
-      Contract(1.0,Environment::r[col][0],shape(1),Environment::U(0,col),shape(1),0.0,tmp5);
+      Contract(1.0,Environment::r[myID][col][0],shape(1),Environment::U[myID](0,col),shape(1),0.0,tmp5);
 
       //then right environment on that
       tmp6.clear();
-      Contract(1.0,tmp5,shape(3),Environment::l[col-1][0],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),Environment::l[myID][col-1][0],shape(1),0.0,tmp6);
 
       //move to a DArray<3> object: order (left-env,peps-row,right-env)
-      LOU = tmp6.reshape_clear(shape(Environment::r[col][0].shape(2),Environment::U(0,col).shape(3),Environment::l[col-1][0].shape(2)));
+      LOU = tmp6.reshape_clear(shape(Environment::r[myID][col][0].shape(2),Environment::U[myID](0,col).shape(3),Environment::l[myID][col-1][0].shape(2)));
 
       //construct left inverse if it contributes
       if( (*this)[col] != (*this)[Lx + col]){
 
          tmp5.clear();
-         Contract(1.0,Environment::r[col][0],shape(1),Environment::I(0,col),shape(1),0.0,tmp5);
+         Contract(1.0,Environment::r[myID][col][0],shape(1),Environment::I[myID](0,col),shape(1),0.0,tmp5);
 
          //then right environment on that
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),Environment::l[col-1][0],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),Environment::l[myID][col-1][0],shape(1),0.0,tmp6);
 
          //move to a DArray<3> object: order (left-env,peps-row,right-env)
-         LOI = tmp6.reshape_clear(shape(Environment::r[col][0].shape(2),Environment::I(0,col).shape(3),Environment::l[col-1][0].shape(2)));
+         LOI = tmp6.reshape_clear(shape(Environment::r[myID][col][0].shape(2),Environment::I[myID](0,col).shape(3),Environment::l[myID][col-1][0].shape(2)));
 
 
       }
@@ -777,12 +783,12 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
             //first add top to the right side, put it in I4
             I4.clear();
-            Contract(1.0,Environment::r[col][row],shape(2),RO[row],shape(0),0.0,I4);
+            Contract(1.0,Environment::r[myID][col][row],shape(2),RO[row],shape(0),0.0,I4);
 
             I4bis.clear();
-            Contract(1.0,I4,shape(i,j,k,o),Environment::I(row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
+            Contract(1.0,I4,shape(i,j,k,o),Environment::I[myID](row,col),shape(m,j,n,k),0.0,I4bis,shape(i,m,n,o));
 
-            Contract(1.0,I4bis,shape(2,3),Environment::l[col-1][row],shape(1,2),0.0,RO[row-1]);
+            Contract(1.0,I4bis,shape(2,3),Environment::l[myID][col-1][row],shape(1,2),0.0,RO[row-1]);
 
             //expectation value:
             energy += 0.5 * Dot(LOI,RO[row-1]);
@@ -793,21 +799,21 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //first attach top to left unity
          I4.clear();
-         Contract(1.0,Environment::r[col][row],shape(0),LOU,shape(0),0.0,I4);
+         Contract(1.0,Environment::r[myID][col][row],shape(0),LOU,shape(0),0.0,I4);
 
          // and construct new left unity
-         Contract(1.0,I4,shape(i,j,k,o),Environment::U(row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
+         Contract(1.0,I4,shape(i,j,k,o),Environment::U[myID](row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
 
          LOU.clear();
-         Contract(1.0,I4bis,shape(2,3),Environment::l[col-1][row],shape(0,1),0.0,LOU);
+         Contract(1.0,I4bis,shape(2,3),Environment::l[myID][col-1][row],shape(0,1),0.0,LOU);
 
          //if it contributes, construct new left inverse
          if( (*this)[ row*Lx + col] != (*this)[ (row + 1)*Lx + col]){
 
-            Contract(1.0,I4,shape(i,j,k,o),Environment::I(row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
+            Contract(1.0,I4,shape(i,j,k,o),Environment::I[myID](row,col),shape(k,i,m,n),0.0,I4bis,shape(j,n,o,m));
 
             LOI.clear();
-            Contract(1.0,I4bis,shape(2,3),Environment::l[col-1][row],shape(0,1),0.0,LOI);
+            Contract(1.0,I4bis,shape(2,3),Environment::l[myID][col-1][row],shape(0,1),0.0,LOI);
 
          }
 
@@ -820,13 +826,13 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //paste top environment on
          tmp5.clear();
-         Contract(1.0,Environment::r[col][Ly - 1],shape(1),Environment::I(Ly-1,col),shape(1),0.0,tmp5);
+         Contract(1.0,Environment::r[myID][col][Ly - 1],shape(1),Environment::I[myID](Ly-1,col),shape(1),0.0,tmp5);
 
          //then bottom enviroment
-         Contract(1.0,tmp5,shape(3),Environment::l[col-1][Ly-1],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),Environment::l[myID][col-1][Ly-1],shape(1),0.0,tmp6);
 
          //move to a DArray<3> object
-         RO[Ly - 2] = tmp6.reshape_clear(shape(Environment::r[col][Ly - 1].shape(0),Environment::I(Ly-1,col).shape(0),Environment::l[col-1][Ly - 1].shape(0)));
+         RO[Ly - 2] = tmp6.reshape_clear(shape(Environment::r[myID][col][Ly - 1].shape(0),Environment::I[myID](Ly-1,col).shape(0),Environment::l[myID][col-1][Ly - 1].shape(0)));
 
          //add to energy
          energy += 0.5 * Dot(LOI,RO[Ly - 2]);
@@ -841,19 +847,19 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //tmp comes out index (r,l)
    tmp4.clear();
-   Contract(1.0,Environment::r[Lx-2][Ly - 1],shape(1),Environment::l[Lx-2][Ly - 1],shape(1),0.0,tmp4);
+   Contract(1.0,Environment::r[myID][Lx-2][Ly - 1],shape(1),Environment::l[myID][Lx-2][Ly - 1],shape(1),0.0,tmp4);
 
    //reshape tmp to a 2-index array
-   R[Ly - 2] = tmp4.reshape_clear(shape(Environment::r[Lx-2][Ly - 1].shape(0),Environment::l[Lx-2][Ly - 1].shape(0)));
+   R[Ly - 2] = tmp4.reshape_clear(shape(Environment::r[myID][Lx-2][Ly - 1].shape(0),Environment::l[myID][Lx-2][Ly - 1].shape(0)));
 
    //now construct the rest
    for(int row = Ly - 2;row > 0;--row){
 
       tmp3.clear();
-      Contract(1.0,Environment::r[Lx-2][row],shape(2),R[row],shape(0),0.0,tmp3);
+      Contract(1.0,Environment::r[myID][Lx-2][row],shape(2),R[row],shape(0),0.0,tmp3);
 
       R[row - 1].clear();
-      Contract(1.0,tmp3,shape(1,2),Environment::l[Lx-2][row],shape(1,2),0.0,R[row-1]);
+      Contract(1.0,tmp3,shape(1,2),Environment::l[myID][Lx-2][row],shape(1,2),0.0,R[row-1]);
 
    }
 
@@ -861,17 +867,17 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //first unity
    tmp5.clear();
-   Contract(1.0,Environment::U(0,Lx-1),shape(2),Environment::l[Lx-2][0],shape(1),0.0,tmp5);
+   Contract(1.0,Environment::U[myID](0,Lx-1),shape(2),Environment::l[myID][Lx-2][0],shape(1),0.0,tmp5);
 
-   LU = tmp5.reshape_clear(shape(Environment::U(0,Lx-1).shape(3),Environment::l[Lx-2][0].shape(2)));
+   LU = tmp5.reshape_clear(shape(Environment::U[myID](0,Lx-1).shape(3),Environment::l[myID][Lx-2][0].shape(2)));
 
    //then inverse if necessary
    if( (*this)[Lx - 1] != (*this)[2*Lx - 1]){
 
       tmp5.clear();
-      Contract(1.0,Environment::I(0,Lx-1),shape(2),Environment::l[Lx-2][0],shape(1),0.0,tmp5);
+      Contract(1.0,Environment::I[myID](0,Lx-1),shape(2),Environment::l[myID][Lx-2][0],shape(1),0.0,tmp5);
 
-      LI = tmp5.reshape_clear(shape(Environment::I(0,Lx-1).shape(3),Environment::l[Lx-2][0].shape(2)));
+      LI = tmp5.reshape_clear(shape(Environment::I[myID](0,Lx-1).shape(3),Environment::l[myID][Lx-2][0].shape(2)));
 
    }
 
@@ -884,14 +890,14 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          //construct the right intermediate contraction (paste bottom to right)
          tmp3.clear();
-         Contract(1.0,Environment::l[Lx-2][row],shape(2),R[row],shape(1),0.0,tmp3);
+         Contract(1.0,Environment::l[myID][Lx-2][row],shape(2),R[row],shape(1),0.0,tmp3);
 
          // 1) paste Sx to the right
-         M = Environment::I(row,Lx-1).shape(0);
+         M = Environment::I[myID](row,Lx-1).shape(0);
          N = tmp3.shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I(row,Lx-1).data(),K,tmp3.data(),K,0.0,R[row-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I[myID](row,Lx-1).data(),K,tmp3.data(),K,0.0,R[row-1].data(),N);
 
          //contract with left Sx
          energy += 0.5 * Dot(LI,R[row - 1]);
@@ -900,17 +906,17 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //construct left renormalized operators for next site: first paste bottom to Left unity
       tmp3.clear();
-      Contract(1.0,LU,shape(1),Environment::l[Lx-2][row],shape(0),0.0,tmp3);
+      Contract(1.0,LU,shape(1),Environment::l[myID][Lx-2][row],shape(0),0.0,tmp3);
 
       // ly construct new unity on the left
-      LU.resize(Environment::U(row,Lx-1).shape(3),Environment::l[Lx-2][row].shape(2));
-      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::U(row,Lx-1).data(),M,tmp3.data(),N,0.0,LU.data(),N);
+      LU.resize(Environment::U[myID](row,Lx-1).shape(3),Environment::l[myID][Lx-2][row].shape(2));
+      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::U[myID](row,Lx-1).data(),M,tmp3.data(),N,0.0,LU.data(),N);
 
       // construct new left inverse if it contributes
       if( (*this)[ row*Lx + Lx - 1] != (*this)[ (row + 1)*Lx + Lx - 1] ) {
 
-         LI.resize(Environment::I(row,Lx-1).shape(3),Environment::l[Lx-2][row].shape(2));
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::I(row,Lx-1).data(),M,tmp3.data(),N,0.0,LI.data(),N);
+         LI.resize(Environment::I[myID](row,Lx-1).shape(3),Environment::l[myID][Lx-2][row].shape(2));
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, Environment::I[myID](row,Lx-1).data(),M,tmp3.data(),N,0.0,LI.data(),N);
 
       }
 
@@ -923,10 +929,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       //tmp comes out index (r,l)
       tmp5.clear();
-      Contract(1.0,Environment::I(Ly-1,Lx-1),shape(2),Environment::l[Lx-2][Ly - 1],shape(1),0.0,tmp5);
+      Contract(1.0,Environment::I[myID](Ly-1,Lx-1),shape(2),Environment::l[myID][Lx-2][Ly - 1],shape(1),0.0,tmp5);
 
       //reshape tmp to a 2-index array
-      R[Ly - 2] = tmp5.reshape_clear(shape(Environment::I(Ly-1,Lx-1).shape(0),Environment::l[Lx-2][Ly - 1].shape(0)));
+      R[Ly - 2] = tmp5.reshape_clear(shape(Environment::I[myID](Ly-1,Lx-1).shape(0),Environment::l[myID][Lx-2][Ly - 1].shape(0)));
 
       //energy
       energy += 0.5 * Dot(LI,R[Ly-2]);

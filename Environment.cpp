@@ -15,13 +15,13 @@ using std::ofstream;
 using namespace global;
 
 //statics
-vector< MPS > Environment::l;
-vector< MPS > Environment::r;
-vector< MPS > Environment::t;
-vector< MPS > Environment::b;
+vector< vector< MPS > > Environment::l;
+vector< vector< MPS > > Environment::r;
+vector< vector< MPS > > Environment::t;
+vector< vector< MPS > > Environment::b;
 
-SL_PEPS Environment::U;
-SL_PEPS Environment::I;
+vector< SL_PEPS > Environment::U;
+vector< SL_PEPS > Environment::I;
 
 int Environment::D_aux;
 
@@ -34,69 +34,89 @@ void Environment::init(int D,int D_aux_in){
 
    D_aux = D_aux_in;
 
-   t.resize(Ly - 1);
-   b.resize(Ly - 1);
+   t.resize(omp_num_threads);
+   b.resize(omp_num_threads);
 
-   b[0] = MPS(D);
-   t[Ly-2] = MPS(D);
+   for(int thr = 0;thr < omp_num_threads;++thr){
 
-   int dim = D;
+      t[thr].resize(Ly - 1);
+      b[thr].resize(Ly - 1);
 
-   for(int i = 1;i < Ly - 2;++i){
+      b[thr][0] = MPS(D);
+      t[thr][Ly-2] = MPS(D);
 
-      dim *= D;
+      int dim = D;
 
-      if(dim < D_aux){
+      for(int i = 1;i < Ly - 2;++i){
 
-         b[i] = MPS(dim);
-         t[Ly-2-i] = MPS(dim);
+         dim *= D;
+
+         if(dim < D_aux){
+
+            b[thr][i] = MPS(dim);
+            t[thr][Ly-2-i] = MPS(dim);
+
+         }
+         else{
+
+            b[thr][i] = MPS(D_aux);
+            t[thr][Ly-2-i] = MPS(D_aux);
+
+         }
 
       }
-      else{
 
-         b[i] = MPS(D_aux);
-         t[Ly-2-i] = MPS(D_aux);
-
-      }
+      b[thr][Ly-2] = MPS(D_aux);
+      t[thr][0] = MPS(D_aux);
 
    }
 
-   b[Ly-2] = MPS(D_aux);
-   t[0] = MPS(D_aux);
+   r.resize(omp_num_threads);
+   l.resize(omp_num_threads);
 
-   r.resize(Lx - 1);
-   l.resize(Lx - 1);
+   for(int thr = 0;thr < omp_num_threads;++thr){
 
-   l[0] = MPS(D);
-   r[Lx-2] = MPS(D);
+      r[thr].resize(Lx - 1);
+      l[thr].resize(Lx - 1);
 
-   dim = D;
+      l[thr][0] = MPS(D);
+      r[thr][Lx-2] = MPS(D);
 
-   for(int i = 1;i < Lx - 2;++i){
+      int dim = D;
 
-      dim *= D;
+      for(int i = 1;i < Lx - 2;++i){
 
-      if(dim < D_aux){
+         dim *= D;
 
-         l[i] = MPS(dim);
-         r[Lx-2-i] = MPS(dim);
+         if(dim < D_aux){
+
+            l[thr][i] = MPS(dim);
+            r[thr][Lx-2-i] = MPS(dim);
+
+         }
+         else{
+
+            l[thr][i] = MPS(D_aux);
+            r[thr][Lx-2-i] = MPS(D_aux);
+
+         }
 
       }
-      else{
 
-         l[i] = MPS(D_aux);
-         r[Lx-2-i] = MPS(D_aux);
-
-      }
+      l[thr][Lx-2] = MPS(D_aux);
+      r[thr][0] = MPS(D_aux);
 
    }
 
-   l[Lx-2] = MPS(D_aux);
-   r[0] = MPS(D_aux);
+   U.resize(omp_num_threads);
+   I.resize(omp_num_threads);
 
-   U = SL_PEPS(D);
-   I = SL_PEPS(D);
+   for(int thr = 0;thr < omp_num_threads;++thr){
 
+      U[thr] = SL_PEPS(D);
+      I[thr] = SL_PEPS(D);
+
+   }
 }
 
 /**
@@ -107,41 +127,47 @@ void Environment::init(int D,int D_aux_in){
  */
 void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &walker){
 
+#ifdef _OPENMP
+   int myID = omp_get_thread_num();
+#else
+   int myID = 0;
+#endif
+
    if(option == 'H'){
 
       //construct bottom layer
-      b[0].fill('b',U);
+      b[myID][0].fill('b',U[myID]);
 
       for(int r = 1;r < Ly - 1;++r){
 
-         MPS tmp(b[r - 1]);
+         MPS tmp(b[myID][r - 1]);
 
          //apply to form MPS with bond dimension D^2
-         tmp.gemv('L','H',r,U);
+         tmp.gemv('L','H',r,U[myID]);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         b[r].compress(D_aux,tmp,1);
+         b[myID][r].compress(D_aux,tmp,1);
 
       }
 
       //then construct top layer
-      t[Ly - 2].fill('t',U);
+      t[myID][Ly - 2].fill('t',U[myID]);
 
       for(int r = Ly - 2;r > 0;--r){
 
          //apply to form MPS with bond dimension D^4
-         MPS tmp(t[r]);
+         MPS tmp(t[myID][r]);
 
-         tmp.gemv('U','H',r,U);
+         tmp.gemv('U','H',r,U[myID]);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         t[r - 1].compress(D_aux,tmp,1);
+         t[myID][r - 1].compress(D_aux,tmp,1);
 
       }
 
@@ -149,39 +175,39 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
    else{//Vertical
 
       //then left layer
-      l[0].fill('l',U);
+      l[myID][0].fill('l',U[myID]);
 
       for(int c = 1;c < Lx - 1;++c){
 
          //i'th col as MPO
-         MPS tmp(l[c - 1]);
+         MPS tmp(l[myID][c - 1]);
 
          //apply to form MPS with bond dimension D^4
-         tmp.gemv('L','V',c,U);
+         tmp.gemv('L','V',c,U[myID]);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         l[c].compress(D_aux,tmp,1);
+         l[myID][c].compress(D_aux,tmp,1);
 
       }
 
       //finally construct right layer
-      r[Lx - 2].fill('r',U);
+      r[myID][Lx - 2].fill('r',U[myID]);
 
       for(int c = Lx - 2;c > 0;--c){
 
          //apply to form MPS with bond dimension D^4
-         MPS tmp(r[c]);
+         MPS tmp(r[myID][c]);
 
-         tmp.gemv('U','V',c,U);
+         tmp.gemv('U','V',c,U[myID]);
 
          //reduce the dimensions of the edge states using thin svd
          tmp.cut_edges();
 
          //compress in sweeping fashion
-         r[c - 1].compress(D_aux,tmp,1);
+         r[myID][c - 1].compress(D_aux,tmp,1);
 
       }
 
@@ -204,13 +230,13 @@ void Environment::test_env(){
    cout << "FROM BOTTOM TO TOP" << endl;
    cout << endl;
    for(int i = 0;i < Ly - 1;++i)
-      cout << i << "\t" << b[i].dot(t[i]) << endl;
+      cout << i << "\t" << b[myID][i].dot(t[myID][i]) << endl;
 
    cout << endl;
    cout << "FROM LEFT TO RIGHT" << endl;
    cout << endl;
    for(int i = 0;i < Lx - 1;++i)
-      cout << i << "\t" << r[i].dot(l[i]) << endl;
+      cout << i << "\t" << r[myID][i].dot(l[myID][i]) << endl;
    cout << endl;
 
 }

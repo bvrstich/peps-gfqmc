@@ -23,6 +23,8 @@ namespace global{
 
    PEPS<double> peps;
 
+   int omp_num_threads;
+
    Random RN;
 
    /**
@@ -39,6 +41,12 @@ namespace global{
       d = d_in;
 
       DT = DT_in;
+
+#ifdef _OPENMP
+      omp_num_threads = omp_get_max_threads();
+#else
+      omp_num_threads = 1;
+#endif
 
       char filename[200];
       sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
