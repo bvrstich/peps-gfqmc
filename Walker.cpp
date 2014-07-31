@@ -44,7 +44,7 @@ Walker::Walker() : std::vector< bool >( Lx * Ly ){
 Walker::Walker(const Walker &walker) : std::vector< bool >(walker) {
 
    this->weight = walker.gWeight();
-   this->overlap = walker.gOverlap();
+   this->nn_over = walker.gnn_over();
    this->EL = walker.gEL();
 
    this->sign = walker.gsign();
@@ -97,7 +97,16 @@ void Walker::sWeight(double new_weight){
  */
 double Walker::gOverlap() const{
 
-   return overlap; 
+   return nn_over[0]; 
+
+}
+
+/** 
+ * @return the overlap of the walker with the Trial
+ */
+const vector<double> &Walker::gnn_over() const {
+
+   return nn_over; 
 
 }
 
@@ -202,7 +211,7 @@ double Walker::exp_en(const Walker &walker_i){
 }
 
 /**
- * calculate the local energy expectation value and overlap
+ * calculate the local energy expectation value and overlap with the accesible states
  * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(const PEPS< double > &peps){
@@ -215,9 +224,12 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    // ---- || evaluate the expectation values in an MPO/MPS manner, first from bottom to top, then left to right || ----
 
+   double ward;
    double energy = 0.0;
 
    int M,N,K;
+
+   nn_over.clear();
 
    //calculate the single layer contractions first:
    Environment::U[myID].fill('H',false,peps,*this);
@@ -266,6 +278,9 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    LU = tmp5.reshape_clear( shape(Environment::t[myID][0][0].shape(2),Environment::U[myID](0,0).shape(3)) );
 
+   //calculate the overlap with this state
+   nn_over.push_back(Dot(R[0],LU));
+
    //only calculate LI if it contributes
    if( (*this)[0] != (*this)[1] ){
 
@@ -295,8 +310,11 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I[myID](0,col).data(),K,0.0,R[col-1].data(),N);
 
+         ward = Dot(LI,R[col - 1]);
+         nn_over.push_back(ward);
+
          //contract with left LI 
-         energy += 0.5 * Dot(LI,R[col - 1]);
+         energy += 0.5 * ward;
 
       }
 
@@ -329,7 +347,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       R[Lx-2] = tmp5.reshape_clear(shape(Environment::t[myID][0][Lx-1].shape(0),Environment::I[myID](0,Lx-1).shape(0)));
 
-      energy += 0.5 * Dot(LI,R[Lx-2]);
+      ward = Dot(LI,R[Lx-2]);
+      nn_over.push_back(ward);
+
+      energy += 0.5 * ward;
 
    }
    
@@ -426,7 +447,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
             Contract(1.0,I4bis,shape(2,3),Environment::b[myID][row-1][col],shape(1,2),0.0,RO[col-1]);
 
             //expectation value:
-            energy += 0.5 * Dot(LOI,RO[col-1]);
+            ward = Dot(LOI,RO[col-1]);
+            nn_over.push_back(ward);
+
+            energy += 0.5 * ward;
 
          }
 
@@ -468,7 +492,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
          RO[Lx - 2] = tmp6.reshape_clear(shape(Environment::t[myID][row][Lx - 1].shape(0),Environment::I[myID](row,Lx-1).shape(0),Environment::b[myID][row-1][Lx - 1].shape(0)));
 
          //add to energy
-         energy += 0.5 * Dot(LOI,RO[Lx - 2]);
+         ward = Dot(LOI,RO[Lx - 2]);
+         nn_over.push_back(ward);
+
+         energy += 0.5 * ward;
 
       }
 
@@ -532,7 +559,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I[myID](Ly-1,col).data(),K,tmp3.data(),K,0.0,R[col-1].data(),N);
 
          //contract with left LI 
-         energy += 0.5 * Dot(LI,R[col - 1]);
+         ward = Dot(LI,R[col - 1]);
+         nn_over.push_back(ward);
+
+         energy += 0.5 * ward;
 
       }
 
@@ -561,9 +591,6 @@ void Walker::calc_EL(const PEPS< double > &peps){
    
    //finally close down on last top site
 
-   //first calculate overlap
-   overlap = Dot(LU,R[Lx-2]);
-
    // close down last LI
    if( (*this)[(Ly - 1)*Lx + Lx - 2] != (*this)[(Ly - 1)*Lx + Lx - 1]){
 
@@ -575,7 +602,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
       R[Lx - 2] = tmp5.reshape_clear(shape(Environment::I[myID](Ly-1,Lx-1).shape(0),Environment::b[myID][Ly-2][Lx - 1].shape(0)));
 
       //energy
-      energy += 0.5 * Dot(LI,R[Lx-2]);
+      ward =  Dot(LI,R[Lx-2]);
+      nn_over.push_back(ward);
+
+      energy += 0.5 * ward;
 
    }
 
@@ -598,7 +628,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    }
 
-   energy += 0.25 * cnt * overlap;
+   energy += 0.25 * cnt * nn_over[0];
 
    // #################################################################
    // ### ---- from left to right: contract in mps/mpo fashion ---- ### 
@@ -667,7 +697,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,Environment::I[myID](row,0).data(),K,0.0,R[row-1].data(),N);
 
          //contract with left Sx
-         energy += 0.5 * Dot(LI,R[row - 1]);
+         ward = Dot(LI,R[row - 1]);
+         nn_over.push_back(ward);
+
+         energy += 0.5 * ward;
 
       }
 
@@ -700,7 +733,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
       R[Ly-2] = tmp5.reshape_clear(shape(Environment::r[myID][0][Ly-1].shape(0),Environment::I[myID](Ly-1,0).shape(0)));
 
-      energy += 0.5 * Dot(LI,R[Ly-2]);
+      ward = Dot(LI,R[Ly-2]);
+      nn_over.push_back(ward);
+
+      energy += 0.5 * ward;
 
    }
 
@@ -791,7 +827,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
             Contract(1.0,I4bis,shape(2,3),Environment::l[myID][col-1][row],shape(1,2),0.0,RO[row-1]);
 
             //expectation value:
-            energy += 0.5 * Dot(LOI,RO[row-1]);
+            ward = Dot(LOI,RO[row-1]);
+            nn_over.push_back(ward);
+
+            energy += 0.5 * ward;
 
          }
 
@@ -835,7 +874,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
          RO[Ly - 2] = tmp6.reshape_clear(shape(Environment::r[myID][col][Ly - 1].shape(0),Environment::I[myID](Ly-1,col).shape(0),Environment::l[myID][col-1][Ly - 1].shape(0)));
 
          //add to energy
-         energy += 0.5 * Dot(LOI,RO[Ly - 2]);
+         ward = Dot(LOI,RO[Ly - 2]);
+         nn_over.push_back(ward);
+
+         energy += 0.5 * ward;
 
       }
 
@@ -899,8 +941,11 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, Environment::I[myID](row,Lx-1).data(),K,tmp3.data(),K,0.0,R[row-1].data(),N);
 
-         //contract with left Sx
-         energy += 0.5 * Dot(LI,R[row - 1]);
+         //contract with left inverse
+         ward = Dot(LI,R[row - 1]);
+         nn_over.push_back(ward);
+
+         energy += 0.5 * ward;
 
       }
 
@@ -935,7 +980,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
       R[Ly - 2] = tmp5.reshape_clear(shape(Environment::I[myID](Ly-1,Lx-1).shape(0),Environment::l[myID][Lx-2][Ly - 1].shape(0)));
 
       //energy
-      energy += 0.5 * Dot(LI,R[Ly-2]);
+      ward = Dot(LI,R[Ly-2]);
+      nn_over.push_back(ward);
+
+      energy += 0.5 * ward;
 
    }
 
@@ -959,10 +1007,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    }
 
-   energy += 0.25 * cnt * overlap;
+   energy += 0.25 * cnt * nn_over[0];
 
    //finally set the local energy
-   EL = energy/overlap;
+   EL = energy/nn_over[0];
 
 }
 

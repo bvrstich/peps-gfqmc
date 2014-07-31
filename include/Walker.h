@@ -39,6 +39,8 @@ class Walker : public vector< bool > {
 
       double gOverlap() const;
 
+      const vector<double> &gnn_over() const;
+
       double gEL() const;
 
       double exp_en(const Walker &);
@@ -59,11 +61,11 @@ class Walker : public vector< bool > {
       //!sign of the walker
       int sign;
 
-      //!The walker overlap with the trial wfn
-      double overlap;
-
       //!local energy
       double EL;
+
+      //!overlap of nn configurations with trial
+      vector<double> nn_over;
 
 };
 
