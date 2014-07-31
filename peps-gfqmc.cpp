@@ -31,15 +31,11 @@ int main(int argc,char *argv[]){
    //and some static objects
    Environment::init(D,D_aux);
 
-   Walker walker;
-
-   walker.calc_EL(global::peps);
-/*
    double dtau = 0.001;
    int Nw = 1024;
 
    GFQMC gfqmc(dtau,Nw);
 
    gfqmc.walk(1);
-*/
+
 }

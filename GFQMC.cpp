@@ -79,7 +79,7 @@ void GFQMC::walk(const int n_steps){
    output.close();
 
 #ifdef _DEBUG
-   cout << "Energy at start = " << EP << "\t" << EP_abs << endl;
+   cout << "Energy at start = " << EP << "\t" << endl;
    cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -97,7 +97,7 @@ void GFQMC::walk(const int n_steps){
 #ifdef _DEBUG
       cout << "        Step = " << step << endl;
       cout << "   # walkers = " << walker.size() << endl;
-      cout << "         E_P = " << EP << "\t" << EP_abs << endl;
+      cout << "         E_P = " << EP << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -257,19 +257,14 @@ void GFQMC::sEP(){
    for(int wi = 0;wi < walker.size();wi++){
 
       double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
-      double overlap = walker[wi].gOverlap();
 
       //For the projected energy
-      projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en * overlap;
-      projE_den += walker[wi].gsign() * walker[wi].gWeight() * overlap;
-
-      projE_abs_num += std::abs(walker[wi].gWeight() * w_loc_en * overlap);
-      projE_abs_den += std::abs(walker[wi].gWeight() * overlap);
+      projE_num += walker[wi].gWeight() * w_loc_en;
+      projE_den += walker[wi].gWeight();
 
    }
 
    EP = projE_num / projE_den;
-   EP_abs = -projE_abs_num / projE_abs_den;
 
 }
 
@@ -283,7 +278,7 @@ void GFQMC::write(const int step){
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << EP_abs << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << endl;
    output.close();
 
 }

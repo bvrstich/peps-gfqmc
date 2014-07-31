@@ -41,6 +41,8 @@ class Walker : public vector< bool > {
 
       const vector<double> &gnn_over() const;
 
+      double gnn_over(int) const;
+
       double gEL() const;
 
       double exp_en(const Walker &);

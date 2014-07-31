@@ -102,11 +102,21 @@ double Walker::gOverlap() const{
 }
 
 /** 
- * @return the overlap of the walker with the Trial
+ * @return the vector containing the overlaps of all the neighbouring walker states with the trial
  */
 const vector<double> &Walker::gnn_over() const {
 
    return nn_over; 
+
+}
+
+/** 
+ * @param index of the neighbour walker
+ * @return the overlap of the walker with index 'index' with the trial
+ */
+double Walker::gnn_over(int index) const {
+
+   return nn_over[index]; 
 
 }
 

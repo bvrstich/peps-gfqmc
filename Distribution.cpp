@@ -171,7 +171,7 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
    for(int i = 1;i < list.size();++i){
 
-      (*this)[i] = - dtau * (list[0].exp_en(list[i]));
+      (*this)[i] = dtau * (list[0].exp_en(list[i])) * ( walker_i.gnn_over(i) / walker_i.gnn_over(0) );
 
       list[i].sign_flip();
 

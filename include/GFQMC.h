@@ -48,9 +48,6 @@ class GFQMC {
       //!projected energy at current timestep
       double EP;
 
-      //!projected energy at current timestep, absolute value of all the contributions (all positive trial)
-      double EP_abs;
-      
       //!The walkers
       std::vector<Walker> walker;
 
