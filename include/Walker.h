@@ -45,7 +45,7 @@ class Walker : public vector< bool > {
 
       double gEL() const;
 
-      double exp_en(const Walker &);
+      double pot_en() const;
 
       void calc_EL(const PEPS<double> &);
 

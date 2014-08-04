@@ -154,11 +154,9 @@ void Walker::sign_flip(){
 }
 
 /**
- * get the energy between *this and walker_i <*this|H| walker_i>
- * @param dtau timestep
- * @param walker_i input Walker
+ * get the 'potential' energy of the walker: < \sum_i Sz_i Sz_{i+1} >
  */
-double Walker::exp_en(const Walker &walker_i){
+double Walker::pot_en() const {
 
    double tmp = 0.0;
 
@@ -168,22 +166,10 @@ double Walker::exp_en(const Walker &walker_i){
       for(int c = 0;c < Lx - 1;++c){
 
          //Sz Sz
-         if( ((*this)[r*Lx + c] == walker_i[r*Lx + c]) && ((*this)[r*Lx + (c + 1)] == walker_i[r*Lx + (c + 1)]) ){
-
-            if( (*this)[r*Lx + c] == (*this)[r*Lx + (c + 1)] )//up up or down down
-               tmp += 0.25;
-            else //up down or down up
-               tmp -= 0.25;
-
-         }
-
-         //S+ S- (extra minus sign for sign problem)
-         if( ((*this)[r*Lx + c] != walker_i[r*Lx + c]) && ((*this)[r*Lx + (c + 1)] != walker_i[r*Lx + (c + 1)]) ){
-
-            if( (*this)[r*Lx + c] != (*this)[r*Lx + (c + 1)] )
-               tmp -= 0.5;
-
-         }
+         if( (*this)[r*Lx + c] == (*this)[r*Lx + (c + 1)] )//up up or down down
+            tmp += 0.25;
+         else //up down or down up
+            tmp -= 0.25;
 
       }
 
@@ -195,22 +181,10 @@ double Walker::exp_en(const Walker &walker_i){
       for(int r = 0;r < Ly - 1;++r){
 
          //Sz Sz
-         if( ((*this)[r*Lx + c] == walker_i[r*Lx + c]) && ((*this)[(r + 1)*Lx + c] == walker_i[(r + 1)*Lx + c]) ){
-
-            if( (*this)[r*Lx + c] == (*this)[(r + 1)*Lx + c] )//up up or down down
-               tmp += 0.25;
-            else //up down or down up
-               tmp -= 0.25;
-
-         }
-
-         //S+ S-
-         if( ((*this)[r*Lx + c] != walker_i[r*Lx + c]) && ((*this)[(r + 1)*Lx + c] != walker_i[(r + 1)*Lx + c]) ){
-
-            if( (*this)[r*Lx + c] != (*this)[(r + 1)*Lx + c] )
-               tmp -= 0.5;
-
-         }
+         if( (*this)[r*Lx + c] == (*this)[(r + 1)*Lx + c] )//up up or down down
+            tmp += 0.25;
+         else //up down or down up
+            tmp -= 0.25;
 
       }
 
@@ -225,7 +199,7 @@ double Walker::exp_en(const Walker &walker_i){
  * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(const PEPS< double > &peps){
-   
+
 #ifdef _OPENMP
    int myID = omp_get_thread_num();
 #else
@@ -363,7 +337,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       energy += 0.5 * ward;
 
    }
-   
+
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators
@@ -532,7 +506,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       Contract(1.0,tmp3,shape(1,2),Environment::b[myID][Ly-2][col],shape(1,2),0.0,R[col-1]);
 
    }
-   
+
    //construct the left going operators on the first top site
 
    //unity
@@ -598,7 +572,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       }
 
    }
-   
+
    //finally close down on last top site
 
    // close down last LI
