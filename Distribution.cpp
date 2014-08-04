@@ -178,3 +178,14 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
    }
 
 }
+
+/**
+ * check for negative entries
+ */
+void Distribution::check_negative() const {
+
+   for(int i = 0;i < this->size();++i)
+      if( (*this)[i] < 0.0 )
+         cout << "ERROR\t" << (*this)[i] << endl;
+
+}

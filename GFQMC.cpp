@@ -146,6 +146,8 @@ double GFQMC::propagate(){
 
       //construct distribution
       dist[myID].construct(walker[i],dtau,EP);
+      dist[myID].check_negative();
+
       double nrm = dist[myID].normalize();
 
       //draw new walker
