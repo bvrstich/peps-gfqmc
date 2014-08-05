@@ -89,7 +89,11 @@ void GFQMC::walk(const int n_steps){
       double wsum = propagate();
 
       //Form the total sum of the walker weights and calculate the scaling for population control
+      double avgw = wsum / (double)walker.size();
+
       double scaling = Nw / wsum;
+
+      double ET = log(scaling)/dtau;
 
       //calculate the energy
       sEP();
@@ -98,6 +102,7 @@ void GFQMC::walk(const int n_steps){
       cout << "        Step = " << step << endl;
       cout << "   # walkers = " << walker.size() << endl;
       cout << "         E_P = " << EP << endl;
+      cout << "         E_T = " << ET << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -109,13 +114,20 @@ void GFQMC::walk(const int n_steps){
       double max_ov = 0.0;
       double min_ov = 1.0;
 
+      int min_index = 0;
+
       for(int i = 0;i < walker.size();++i){
          
          if(max_ov < std::abs(walker[i].gOverlap()))
             max_ov = std::abs(walker[i].gOverlap());
 
-         if(min_ov > std::abs(walker[i].gOverlap()))
+         if(min_ov > std::abs(walker[i].gOverlap())){
+
             min_ov = std::abs(walker[i].gOverlap());
+
+            min_index = i;
+
+         }
 
       }
 
@@ -145,7 +157,7 @@ double GFQMC::propagate(){
 #endif
 
       //construct distribution
-      dist[myID].construct(walker[i],dtau,EP);
+      dist[myID].construct(walker[i],dtau,0.0);
       dist[myID].check_negative();
 
       double nrm = dist[myID].normalize();

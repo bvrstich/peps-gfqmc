@@ -21,8 +21,6 @@ class Environment {
 
       static void calc_env(char,const PEPS< double > &,const Walker &walker);
 
-      static void calc_env(char,int,const PEPS< double > &,const Walker &walker);
-
       static void test_env();
 
       //!stores an array environment MPS's for l(eft) , r(ight), t(op) and b(ottom)
