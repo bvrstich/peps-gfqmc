@@ -36,6 +36,6 @@ int main(int argc,char *argv[]){
 
    GFQMC gfqmc(dtau,Nw);
 
-   gfqmc.walk(10000);
+   gfqmc.walk(1000000);
 
 }

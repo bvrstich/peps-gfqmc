@@ -88,8 +88,9 @@ void GFQMC::walk(const int n_steps){
       //Propagate the walkers of each rank separately
       double wsum = propagate();
 
-      //Form the total sum of the walker weights and calculate the scaling for population control
       double scaling = Nw / wsum;
+
+      double ET = log(scaling)/dtau;
 
       //calculate the energy
       sEP();
@@ -98,6 +99,7 @@ void GFQMC::walk(const int n_steps){
       cout << "        Step = " << step << endl;
       cout << "   # walkers = " << walker.size() << endl;
       cout << "         E_P = " << EP << "\t" << EP_abs << endl;
+      cout << "         E_T = " << ET << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -145,7 +147,7 @@ double GFQMC::propagate(){
 #endif
 
       //construct distribution
-      dist[myID].construct(walker[i],dtau,EP);
+      dist[myID].construct(walker[i],dtau,0.0);
       double nrm = dist[myID].normalize();
 
       //draw new walker

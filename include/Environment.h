@@ -21,7 +21,7 @@ class Environment {
 
       static void calc_env(char,const PEPS< double > &,const Walker &walker);
 
-      static void calc_env(char,int,const PEPS< double > &,const Walker &walker);
+      static void calc_overlap_env(const PEPS< double > &,const Walker &walker);
 
       static void test_env();
 

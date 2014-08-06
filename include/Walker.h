@@ -39,6 +39,8 @@ class Walker : public vector< bool > {
 
       double gOverlap() const;
 
+      double calc_overlap(const PEPS<double> &);
+
       double gEL() const;
 
       double pot_en() const;

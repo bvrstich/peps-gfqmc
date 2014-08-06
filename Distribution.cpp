@@ -103,8 +103,18 @@ const vector< Walker > &Distribution::glist() const {
 
 /** 
  * @return the final state Walker with index i
+ * const version
  */
 const Walker &Distribution::gwalker(int index) const {
+
+   return list[index];
+
+}
+
+/** 
+ * @return the final state Walker with index i
+ */
+Walker &Distribution::gwalker(int index) {
 
    return list[index];
 
