@@ -12,6 +12,7 @@ using std::complex;
 
 using namespace btas;
 
+#include "Walker.h"
 #include "PEPS.h"
 
 namespace global {
@@ -29,6 +30,9 @@ namespace global {
 
    //!virtual dimension of the trial
    extern int DT;
+
+   //!backup walker state for stability in GFQMC algorithm
+   extern vector<Walker> backup_walker;
 
    //!number of omp threads
    extern int omp_num_threads;

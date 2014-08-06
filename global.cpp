@@ -23,6 +23,8 @@ namespace global{
 
    PEPS<double> peps;
 
+   vector<Walker> backup_walker;
+
    int omp_num_threads;
 
    Random RN;
@@ -54,6 +56,8 @@ namespace global{
       peps.resize(Lx*Ly);
       peps.load(filename);
       peps.sD(DT_in);
+
+      backup_walker.resize(omp_num_threads);
 
    }
 
