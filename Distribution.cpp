@@ -189,3 +189,92 @@ void Distribution::check_negative() const {
          cout << "ERROR\t" << (*this)[i] << endl;
 
 }
+
+/**
+ * construct and fill the distribution by calculating the matrix elements <0|1-dtau * H|i> for all i = 0,...,n
+ * @param walker_i input walker, the list and distribution is constructed from this
+ */
+void Distribution::construct_VMC(const Walker &walker_i){
+
+   //first reset the lists
+   list.clear();
+   this->clear();
+
+   //f == i first 
+   list.push_back(walker_i);
+
+   //first horizontal 'final' states
+   for(int r = 0;r < Ly;++r){
+
+      for(int c = 0;c < Lx - 1;++c){
+
+         if(walker_i[r*Lx + c] != walker_i[r*Lx + (c + 1)]){
+
+            Walker walker_f(walker_i);
+
+            walker_f[r*Lx + c] = !(walker_i[r*Lx + c]);
+            walker_f[r*Lx + (c + 1)] = !(walker_i[r*Lx + (c + 1)]);
+
+            list.push_back(walker_f);
+
+         }
+
+      }
+
+   }
+
+   //then vertical 'final' states
+   for(int c = 0;c < Lx;++c){
+
+      for(int r = 0;r < Ly - 1;++r){
+
+         if(walker_i[r*Lx + c] != walker_i[(r + 1)*Lx + c]){
+
+            Walker walker_f(walker_i);
+
+            walker_f[r*Lx + c] = !(walker_i[r*Lx + c]);
+            walker_f[(r + 1)*Lx + c] = !(walker_i[(r + 1)*Lx + c]);
+
+            list.push_back(walker_f);
+
+         }
+
+      }
+
+   }
+
+   this->resize(list.size());
+
+   (*this)[0] = 1.0;
+
+   for(int i = 1;i < list.size();++i){
+
+      list[i].sign_flip();
+
+      (*this)[i] = walker_i.gnn_over(i) * walker_i.gnn_over(i) / ( walker_i.gnn_over(0) * walker_i.gnn_over(0) );
+
+   }
+
+}
+
+/**
+ * draw a new walker using metropolis algorithm
+ */
+int Distribution::metropolis() const {
+
+   //draw uniform move
+   int trial = (RN()*(list.size() - 1) + 1);
+
+   double x = RN();
+
+   while( (*this)[trial] < x){
+
+      trial = (RN()*(list.size() - 1) + 1);
+
+      x = RN();
+
+   }
+
+   return trial;
+
+}

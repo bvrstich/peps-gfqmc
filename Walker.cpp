@@ -1011,3 +1011,21 @@ void Walker::save(const char *filename){
          fout << row << "\t" << col << "\t" << (*this)[row*Lx +col] << endl;
 
 }
+
+/**
+ * count the number of differences between two walkers
+ * @param walker_i input Walker
+ */
+int Walker::num_diff(const Walker &walker_i) const {
+
+   int num_diff = 0;
+
+   for(int r = 0;r < Ly;++r)
+      for(int c = 0;c < Lx;++c)
+         if( (*this)[r*Lx + c] != walker_i[r*Lx + c])
+            num_diff++;
+
+   return num_diff;
+
+}
+

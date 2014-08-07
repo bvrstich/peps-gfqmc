@@ -55,6 +55,8 @@ class Walker : public vector< bool > {
 
       void sign_flip();
 
+      int num_diff(const Walker &) const;
+
   private:
 
       //!The walker weight

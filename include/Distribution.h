@@ -28,11 +28,15 @@ class Distribution : public vector<double> {
 
       void construct(const Walker &,double,double);
 
+      void construct_VMC(const Walker &);
+
       int gn() const;
 
       double normalize();
 
       int draw() const;
+
+      int metropolis() const;
 
       const vector< Walker > &glist() const;
 
