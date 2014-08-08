@@ -54,6 +54,8 @@ void GFQMC::SetupWalkers(){
 
       walker[i].load(walker_file);
 
+      walker[i].calc_EL(peps);
+
    }
 
 }

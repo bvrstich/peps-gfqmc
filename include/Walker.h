@@ -51,6 +51,8 @@ class Walker : public vector< bool > {
 
       void save(const char *filename);
 
+      void load(const char *filename);
+
       int gsign() const;
 
       void sign_flip();

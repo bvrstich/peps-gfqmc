@@ -1029,3 +1029,21 @@ int Walker::num_diff(const Walker &walker_i) const {
 
 }
 
+/**
+ * load the walker
+ */
+void Walker::load(const char *filename){
+
+   ifstream fin(filename);
+
+   bool tmp;
+
+   for(int row = 0;row < Ly;++row)
+      for(int col = 0;col < Lx;++col){
+
+         fin >> row >> col >> tmp; 
+         (*this)[row*Lx + col] = tmp;
+
+      }
+
+}
