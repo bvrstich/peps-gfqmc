@@ -31,11 +31,22 @@ int main(int argc,char *argv[]){
    //and some static objects
    Environment::init(D,D_aux);
 
-   double dtau = 0.001;
-   int Nw = 1024;
+   Walker walker;
 
-   GFQMC gfqmc(dtau,Nw);
+   Environment::U[0].fill('H',false,global::peps,walker);
+   Environment::calc_env('H',global::peps,walker);
+   Environment::U[0].fill('V',false,global::peps,walker);
+   Environment::calc_env('V',global::peps,walker);
 
-   gfqmc.walk(100000);
+   Environment::test_env();
+
+   /*
+      double dtau = 0.005;
+      int Nw = 1437;
+
+      GFQMC gfqmc(dtau,Nw);
+      gfqmc.test();
+    */
+   //gfqmc.walk(1000);
 
 }

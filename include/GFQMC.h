@@ -22,6 +22,8 @@ class GFQMC {
       //Let the walkers propagate for n_steps steps
       void walk(int);
 
+      void test();
+
       //Propagate my population of walkers for 1 timestep. Return the sum of the coeff of my walkers.
       double propagate();
       

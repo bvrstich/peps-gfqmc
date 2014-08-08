@@ -45,7 +45,7 @@ GFQMC::~GFQMC(){ }
 void GFQMC::SetupWalkers(){
 
    walker.resize(Nw);
-
+/*
    for(int i = 0;i < Nw;++i){
 
       char walker_file[200];
@@ -56,7 +56,24 @@ void GFQMC::SetupWalkers(){
 
       walker[i].calc_EL(peps);
 
+      if(walker[i].gOverlap() < 0.0)
+         walker[i].sign_flip();
+
    }
+*/
+}
+
+void GFQMC::test(){
+
+   int i = 147;
+
+   char walker_file[200];
+
+   sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
+
+   walker[i].load(walker_file);
+
+   walker[i].calc_EL(peps);
 
 }
 
@@ -88,7 +105,7 @@ void GFQMC::walk(const int n_steps){
 
       double scaling = Nw / wsum;
 
-      double ET = log(scaling)/dtau;
+      double ET = 1.0/dtau * ( 1 - 1.0/scaling);
 
       //calculate the energy
       sEP();
@@ -109,26 +126,35 @@ void GFQMC::walk(const int n_steps){
       double max_ov = 0.0;
       double min_ov = 1.0;
 
+      double max_en = -100.0;
+      double min_en = 100.0;
+
       int min_index = 0;
 
       for(int i = 0;i < walker.size();++i){
-         
+
          if(max_ov < std::abs(walker[i].gOverlap()))
             max_ov = std::abs(walker[i].gOverlap());
 
-         if(min_ov > std::abs(walker[i].gOverlap())){
-
+         if(min_ov > std::abs(walker[i].gOverlap()))
             min_ov = std::abs(walker[i].gOverlap());
 
-            min_index = i;
+         if(max_en < walker[i].gEL())
+            max_en = walker[i].gEL();
 
-         }
+         if(min_en > walker[i].gEL())
+            min_en = walker[i].gEL();
 
       }
 
 #ifdef _DEBUG
+      cout << endl;
       cout << "Minimal Overlap:\t" << min_ov << endl;
       cout << "Maximal Overlap:\t" << max_ov << endl;
+      cout << endl;
+      cout << "Minimal Energy:\t" << min_en << endl;
+      cout << "Maximal Energy:\t" << max_en << endl;
+      cout << endl;
 #endif
 
    }
@@ -160,7 +186,7 @@ double GFQMC::propagate(){
       double prev_EL = walker[i].gEL();
 
       //construct distribution
-      dist[myID].construct(walker[i],dtau,0.0);
+      dist[myID].construct(walker[i],dtau,-62.8656);
       dist[myID].check_negative();
 
       double nrm = dist[myID].normalize();
@@ -267,6 +293,7 @@ void GFQMC::PopulationControl(double scaling){
 
    cout << "The min. encountered weight is " << minw << " ." << endl;
    cout << "The max. encountered weight is " << maxw << " ." << endl;
+   cout << endl;
 #endif
 
 }

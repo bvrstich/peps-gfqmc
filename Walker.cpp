@@ -996,6 +996,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
    //finally set the local energy
    EL = energy/nn_over[0];
 
+   Environment::test_env();
+
 }
 
 /**
