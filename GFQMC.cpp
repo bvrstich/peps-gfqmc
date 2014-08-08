@@ -44,25 +44,6 @@ GFQMC::~GFQMC(){ }
  */
 void GFQMC::SetupWalkers(){
 
-   Walker init_walker;
-   init_walker.calc_EL(peps);
-
-   dist[0].construct(init_walker,dtau,init_walker.gEL());
-   dist[0].normalize();
-
-   walker.resize(Nw);
-
-#pragma omp parallel for
-   for(int i = 0;i < Nw;++i){
-
-      int pick = dist[0].draw();
-
-      walker[i] = dist[0].gwalker(pick);
-
-      walker[i].calc_EL(peps);
-
-   }
-
 }
 
 void GFQMC::walk(const int n_steps){
