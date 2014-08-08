@@ -40,26 +40,19 @@ GFQMC::GFQMC(double dtau_in,int Nw_in){
 GFQMC::~GFQMC(){ }
 
 /**
- * initialize the walkers
+ * initialize the walkers: read in distribution from walkers dir
  */
 void GFQMC::SetupWalkers(){
 
-   Walker init_walker;
-   init_walker.calc_EL(peps);
-
-   dist[0].construct(init_walker,dtau,init_walker.gEL());
-   dist[0].normalize();
-
    walker.resize(Nw);
 
-#pragma omp parallel for
    for(int i = 0;i < Nw;++i){
 
-      int pick = dist[0].draw();
+      char walker_file[200];
 
-      walker[i] = dist[0].gwalker(pick);
+      sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
 
-      walker[i].calc_EL(peps);
+      walker[i].load(walker_file);
 
    }
 
