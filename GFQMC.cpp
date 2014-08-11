@@ -45,10 +45,47 @@ GFQMC::~GFQMC(){ }
 void GFQMC::SetupWalkers(){
 
    walker.resize(Nw);
+/*
+   for(int i = 0;i < Nw;++i){
 
-#pragma omp parallel for
-   for(int i = 0;i < Nw;++i)
+      char walker_file[200];
+
+      sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
+
+      walker[i].load(walker_file);
+
       walker[i].calc_EL(peps);
+
+      if(walker[i].gOverlap() < 0.0)
+         walker[i].sign_flip();
+
+   }
+*/
+}
+
+void GFQMC::test(){
+
+   int i = 205;
+
+   char walker_file[200];
+
+   sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
+
+   walker[i].load(walker_file);
+
+   Distribution dist;
+   dist.construct(walker[i],dtau,0.0);
+
+   for(int j = 0;j < dist.size();++j){
+
+      cout << j << endl;
+      dist.gwalker(j).calc_overlap(peps);
+      cout << dist.gwalker(j).gOverlap() << endl;
+      cout << endl;
+      cout << dist.gwalker(j) << endl;
+      cout << endl;
+
+   }
 
 }
 
@@ -116,7 +153,7 @@ void GFQMC::walk(const int n_steps){
             min_en = walker[i].gEL();
 
       }
-      
+
 #ifdef _DEBUG
       cout << endl;
       cout << "Minimal Overlap:\t" << min_ov << endl;

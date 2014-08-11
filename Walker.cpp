@@ -193,6 +193,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    int M,N,K;
 
+   cout << *this << endl;
+
    //calculate the single layer contractions first:
    Environment::U[myID].fill('H',false,peps,*this);
    Environment::I[myID].fill('H',true,peps,*this);
@@ -249,7 +251,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       LI = tmp5.reshape_clear( shape(Environment::t[myID][0][0].shape(2),Environment::I[myID](0,0).shape(3)) );
 
    }
-
+   
    //now for the middle terms
    for(int col = 1;col < Lx - 1;++col){
 
@@ -447,7 +449,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       }
 
    }
-
+/*
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
    //first construct the right renormalized operators
@@ -937,6 +939,8 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //finally set the local energy
    EL = energy/overlap;
+*/
+   Environment::test_env();
 
 }
 
