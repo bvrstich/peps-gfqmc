@@ -77,7 +77,7 @@ void GFQMC::walk(const int n_steps){
 
       double scaling = Nw / wsum;
 
-      double ET = log(scaling)/dtau;
+      double ET = 1.0/dtau * ( 1 - 1.0/scaling);
 
       //calculate the energy
       sEP();
@@ -98,6 +98,9 @@ void GFQMC::walk(const int n_steps){
       double max_ov = 0.0;
       double min_ov = 1.0;
 
+      double max_en = -100.0;
+      double min_en = 100.0;
+
       for(int i = 0;i < walker.size();++i){
 
          if(max_ov < std::abs(walker[i].gOverlap()))
@@ -106,11 +109,22 @@ void GFQMC::walk(const int n_steps){
          if(min_ov > std::abs(walker[i].gOverlap()))
             min_ov = std::abs(walker[i].gOverlap());
 
-      }
+         if(max_en < walker[i].gEL())
+            max_en = walker[i].gEL();
 
+         if(min_en > walker[i].gEL())
+            min_en = walker[i].gEL();
+
+      }
+      
 #ifdef _DEBUG
+      cout << endl;
       cout << "Minimal Overlap:\t" << min_ov << endl;
       cout << "Maximal Overlap:\t" << max_ov << endl;
+      cout << endl;
+      cout << "Minimal Energy:\t" << min_en << endl;
+      cout << "Maximal Energy:\t" << max_en << endl;
+      cout << endl;
 #endif
 
    }
@@ -135,18 +149,20 @@ double GFQMC::propagate(){
 
       //construct distribution
       dist[myID].construct(walker[i],dtau,0.0);
-      double nrm = dist[myID].normalize();
+      dist[myID].normalize();
 
       //draw new walker
       int pick = dist[myID].draw();
 
       walker[i] = dist[myID].gwalker(pick);
 
-      //multiply weight
-      walker[i].multWeight(nrm);
-
       //calculate new properties
       walker[i].calc_EL(peps);
+
+      double nrm = 1.0 - dtau * walker[i].gEL();
+
+      //multiply weight
+      walker[i].multWeight(nrm);
 
       sum += walker[i].gWeight();
 
