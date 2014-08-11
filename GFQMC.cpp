@@ -46,20 +46,9 @@ void GFQMC::SetupWalkers(){
 
    walker.resize(Nw);
 
-   for(int i = 0;i < Nw;++i){
-
-      char walker_file[200];
-
-      sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
-
-      walker[i].load(walker_file);
-
+#pragma omp parallel for
+   for(int i = 0;i < Nw;++i)
       walker[i].calc_EL(peps);
-
-      if(walker[i].gOverlap() < 0.0)
-         walker[i].sign_flip();
-
-   }
 
 }
 
