@@ -151,7 +151,7 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
          //compress in sweeping fashion
          b[myID][r].compress(D_aux,tmp,1);
 
-      }
+     }
 
       //then construct top layer
       t[myID][Ly - 2].fill('t',U[myID]);

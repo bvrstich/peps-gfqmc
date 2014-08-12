@@ -265,6 +265,10 @@ void Walker::calc_EL(const PEPS< double > &peps){
    //calculate the overlap with this state
    nn_over.push_back(Dot(R[0],LU));
 
+   cout << endl;
+   cout << nn_over[0] << endl;
+   cout << endl;
+
    //only calculate LI if it contributes
    if( (*this)[0] != (*this)[1] ){
 
