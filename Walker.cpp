@@ -17,9 +17,9 @@ using namespace global;
 
 /**
  * construct a Walker object: initialize on AF state
- * @param n_trot_in number of trotter terms
+ * @param optoin start with up or down spin
  */
-Walker::Walker() : std::vector< bool >( Lx * Ly ){
+Walker::Walker(int option) : std::vector< bool >( Lx * Ly ){
 
    weight = 1.0;
 
@@ -28,7 +28,7 @@ Walker::Walker() : std::vector< bool >( Lx * Ly ){
    for(int r = 0;r < Ly;++r)
       for(int c = 0;c < Lx;++c){
 
-         if( (r + c)%2 == 0)
+         if( (r + c + option)%2 == 0)
             (*this)[ r*Lx + c ] = true;
          else
             (*this)[ r*Lx + c ] = false;
@@ -192,8 +192,6 @@ void Walker::calc_EL(const PEPS< double > &peps){
    double energy = 0.0;
 
    int M,N,K;
-
-   cout << *this << endl;
 
    //calculate the single layer contractions first:
    Environment::U[myID].fill('H',false,peps,*this);
@@ -449,7 +447,7 @@ void Walker::calc_EL(const PEPS< double > &peps){
       }
 
    }
-/*
+
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
    //first construct the right renormalized operators
@@ -939,8 +937,6 @@ void Walker::calc_EL(const PEPS< double > &peps){
 
    //finally set the local energy
    EL = energy/overlap;
-*/
-   Environment::test_env();
 
 }
 

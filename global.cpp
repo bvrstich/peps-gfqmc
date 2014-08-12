@@ -49,7 +49,8 @@ namespace global{
 #endif
 
       char filename[200];
-      sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
+      //sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
+      sprintf(filename,"/home/bright/bestanden/programmas/peps/output/%dx%d/D=%d",Lx,Ly,DT);
 
       peps.resize(Lx*Ly);
       peps.load(filename);

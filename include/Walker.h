@@ -22,8 +22,7 @@ class Walker : public vector< bool > {
 
    public:
 
-      //empty contstructor
-      Walker();
+      Walker(int option = 0);
    
       //Constructor copying an entire Walker
       Walker(const Walker &walker);

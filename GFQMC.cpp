@@ -45,7 +45,7 @@ GFQMC::~GFQMC(){ }
 void GFQMC::SetupWalkers(){
 
    walker.resize(Nw);
-/*
+
    for(int i = 0;i < Nw;++i){
 
       char walker_file[200];
@@ -60,7 +60,7 @@ void GFQMC::SetupWalkers(){
          walker[i].sign_flip();
 
    }
-*/
+
 }
 
 void GFQMC::test(){
@@ -186,7 +186,7 @@ double GFQMC::propagate(){
 
       //construct distribution
       dist[myID].construct(walker[i],dtau,0.0);
-      dist[myID].normalize();
+      double nrm = dist[myID].normalize();
 
       //draw new walker
       int pick = dist[myID].draw();
@@ -195,8 +195,6 @@ double GFQMC::propagate(){
 
       //calculate new properties
       walker[i].calc_EL(peps);
-
-      double nrm = 1.0 - dtau * walker[i].gEL();
 
       //multiply weight
       walker[i].multWeight(nrm);
