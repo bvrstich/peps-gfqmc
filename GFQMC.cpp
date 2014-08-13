@@ -44,22 +44,11 @@ GFQMC::~GFQMC(){ }
  */
 void GFQMC::SetupWalkers(){
 
-   walker.resize(Nw);
+   walker.resize(1);
+   walker[0].calc_EL(peps);
 
-   for(int i = 0;i < Nw;++i){
-
-      char walker_file[200];
-
-      sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
-
-      walker[i].load(walker_file);
-
-      walker[i].calc_EL(peps);
-
-      if(walker[i].gOverlap() < 0.0)
-         walker[i].sign_flip();
-
-   }
+   for(int i = 1;i < Nw;++i)
+      walker.push_back(walker[0]);
 
 }
 
