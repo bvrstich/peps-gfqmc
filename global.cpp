@@ -21,6 +21,8 @@ namespace global{
 
    int d;
 
+   vector< Walker > backup_walker;
+
    PEPS<double> peps;
 
    int omp_num_threads;
@@ -48,9 +50,10 @@ namespace global{
       omp_num_threads = 1;
 #endif
 
+      backup_walker.resize(omp_num_threads);
+
       char filename[200];
-      //sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
-      sprintf(filename,"/home/bright/bestanden/programmas/peps/output/%dx%d/D=%d",Lx,Ly,DT);
+      sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
 
       peps.resize(Lx*Ly);
       peps.load(filename);

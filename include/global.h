@@ -13,6 +13,7 @@ using std::complex;
 using namespace btas;
 
 #include "PEPS.h"
+#include "Walker.h"
 
 namespace global {
 
@@ -32,6 +33,9 @@ namespace global {
 
    //!number of omp threads
    extern int omp_num_threads;
+
+   //!backup walkers for stability of algorithm
+   extern vector< Walker > backup_walker;
 
    //!trial wavefunction
    extern PEPS<double> peps;

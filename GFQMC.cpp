@@ -163,8 +163,11 @@ void GFQMC::walk(const int n_steps){
 double GFQMC::propagate(){
 
    double sum = 0.0;
+   int num_rej = 0;
 
-#pragma omp parallel for reduction(+: sum)
+   double width = sqrt(2.0/dtau);
+
+#pragma omp parallel for reduction(+: sum,num_rej)
    for(int i = 0;i < walker.size();i++){
 
 #ifdef _OPENMP
@@ -172,6 +175,9 @@ double GFQMC::propagate(){
 #else
       int myID = 0;
 #endif
+
+      //backup the walker for stability
+      backup_walker[myID] = walker[i];
 
       //construct distribution
       dist[myID].construct(walker[i],dtau,0.0);
@@ -182,11 +188,22 @@ double GFQMC::propagate(){
 
       walker[i] = dist[myID].gwalker(pick);
 
+      //multiply weight
+      walker[i].multWeight(1.0 - dtau * walker[i].gEL() );
+
       //calculate new properties
       walker[i].calc_EL(peps);
 
-      //multiply weight
-      walker[i].multWeight(nrm);
+      double EL = walker[i].gEL();
+
+      if( (EL < EP - width) || (EL > EP + width) ){//very rare event, will cause numerical unstability
+
+         num_rej++;
+
+         //copy the state back!
+         walker[i] = backup_walker[myID];
+
+      }
 
       sum += walker[i].gWeight();
 
