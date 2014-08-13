@@ -1053,3 +1053,33 @@ void Walker::load(const char *filename){
       }
 
 }
+
+/**
+ * calculate the overlap of the trial peps with the walker
+ * @param peps trial wave function represented as peps
+ */
+double Walker::calc_overlap(const PEPS< double > &peps){
+
+#ifdef _OPENMP
+   int myID = omp_get_thread_num();
+#else
+   int myID = 0;
+#endif
+
+   // ---- || evaluate the expectation values in an MPO/MPS manner, first from bottom to top, then left to right || ----
+
+   double energy = 0.0;
+
+   int M,N,K;
+
+   //calculate the single layer contractions first:
+   Environment::U[myID].fill('H',false,peps,*this);
+
+   //first construct the top and bottom (horizontal) environment layers
+   Environment::calc_overlap_env(peps,*this);
+
+   overlap = Environment::b[myID][Ly-2].dot(Environment::t[myID][Ly-2]);
+
+   return overlap;
+
+}
