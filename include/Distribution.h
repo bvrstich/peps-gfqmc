@@ -42,6 +42,8 @@ class Distribution : public vector<double> {
 
       const Walker &gwalker(int) const;
 
+      Walker &gwalker(int);
+
       void check_negative() const;
 
    private:

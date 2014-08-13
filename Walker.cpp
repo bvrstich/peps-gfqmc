@@ -1078,8 +1078,8 @@ double Walker::calc_overlap(const PEPS< double > &peps){
    //first construct the top and bottom (horizontal) environment layers
    Environment::calc_overlap_env(peps,*this);
 
-   overlap = Environment::b[myID][Ly-2].dot(Environment::t[myID][Ly-2]);
+   nn_over[0] = Environment::b[myID][Ly-2].dot(Environment::t[myID][Ly-2]);
 
-   return overlap;
+   return nn_over[0];
 
 }

@@ -240,3 +240,39 @@ void Environment::test_env(){
    cout << endl;
 
 }
+
+/**
+ * construct the environment mps's for the input PEPS, only those needed for overlap calculation:
+ * @param peps input PEPS<double>
+ * @param walker input Walker (who would have guessed)
+ */
+void Environment::calc_overlap_env(const PEPS< double > &peps,const Walker &walker){
+
+#ifdef _OPENMP
+   int myID = omp_get_thread_num();
+#else
+   int myID = 0;
+#endif
+
+   //construct bottom layer
+   b[myID][0].fill('b',U[myID]);
+
+   for(int r = 1;r < Ly - 1;++r){
+
+      MPS tmp(b[myID][r - 1]);
+
+      //apply to form MPS with bond dimension D^2
+      tmp.gemv('L','H',r,U[myID]);
+
+      //reduce the dimensions of the edge states using thin svd
+      tmp.cut_edges();
+
+      //compress in sweeping fashion
+      b[myID][r].compress(D_aux,tmp,1);
+
+   }
+
+   //then construct top layer
+   t[myID][Ly - 2].fill('t',U[myID]);
+
+}

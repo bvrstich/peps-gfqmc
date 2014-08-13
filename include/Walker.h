@@ -59,6 +59,8 @@ class Walker : public vector< bool > {
 
       int num_diff(const Walker &) const;
 
+      double calc_overlap(const PEPS< double > &);
+
   private:
 
       //!The walker weight

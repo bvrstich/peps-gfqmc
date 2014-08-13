@@ -110,6 +110,16 @@ const Walker &Distribution::gwalker(int index) const {
 
 }
 
+/** 
+ * @return the final state Walker with index i
+ */
+Walker &Distribution::gwalker(int index) {
+
+   return list[index];
+
+}
+
+
 /**
  * construct and fill the distribution by calculating the matrix elements <0|1-dtau * H|i> for all i = 0,...,n
  * @param walker_i input walker, the list and distribution is constructed from this

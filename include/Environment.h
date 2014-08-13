@@ -21,6 +21,8 @@ class Environment {
 
       static void calc_env(char,const PEPS< double > &,const Walker &walker);
 
+      static void calc_overlap_env(const PEPS< double > &,const Walker &);
+
       static void test_env();
 
       //!stores an array environment MPS's for l(eft) , r(ight), t(op) and b(ottom)
