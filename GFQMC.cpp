@@ -45,7 +45,7 @@ GFQMC::~GFQMC(){ }
 void GFQMC::SetupWalkers(){
 
    walker.resize(Nw);
-
+/*
    for(int i = 0;i < Nw;++i){
 
       char walker_file[200];
@@ -59,7 +59,7 @@ void GFQMC::SetupWalkers(){
       cout << i << "\t" << walker[i].gEL() << "\t" << walker[i].gOverlap() << endl;
 
    }
-
+*/
 }
 
 void GFQMC::test(){
@@ -74,7 +74,13 @@ void GFQMC::test(){
 
    walker[i].calc_EL(peps);
 
-   cout << i << "\t" << walker[i].gEL() << "\t" << walker[i].gOverlap() << endl;
+   cout << walker[i] << endl;
+
+   Distribution dist;
+   dist.construct(walker[i],dtau,-62.8656);
+
+   for(int i = 0;i < dist.size();++i)
+      walker[i].calc_over
 
 }
 

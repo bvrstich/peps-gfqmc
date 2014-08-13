@@ -31,11 +31,11 @@ int main(int argc,char *argv[]){
    //and some static objects
    Environment::init(D,D_aux);
 
-   double dtau = 0.005;
+   double dtau = 0.001;
    int Nw = 1024;
 
    GFQMC gfqmc(dtau,Nw);
-   //gfqmc.test();
+   gfqmc.test();
    /*
    gfqmc.walk(1000);
 */
