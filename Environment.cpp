@@ -214,6 +214,7 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
    }
 
 }
+
 /**
  * construct the environment mps's for the input PEPS, only those needed for overlap calculation:
  * @param peps input PEPS<double>
