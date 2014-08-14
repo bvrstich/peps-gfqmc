@@ -17,7 +17,7 @@ class Environment {
 
    public:
 
-      static void init(int,int);
+      static void init();
 
       static void calc_env(char,const PEPS< double > &,const Walker &walker);
 
@@ -36,9 +36,6 @@ class Environment {
 
       //!contraction between inverted walker state and peps
       static vector< SL_PEPS > I;
-
-      //!auxiliary bond dimension for the environment contractions
-      static int D_aux;
 
    private:
 

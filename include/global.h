@@ -31,6 +31,9 @@ namespace global {
    //!virtual dimension of the trial
    extern int DT;
 
+   //!virtual dimension of the trial
+   extern int D_aux;
+
    //!backup walker state for stability in GFQMC algorithm
    extern vector<Walker> backup_walker;
 
@@ -40,7 +43,7 @@ namespace global {
    //!trial wavefunction
    extern PEPS<double> peps;
 
-   void init(int,int,int,int);
+   void init(int,int,int,int,int);
 
    template<typename T>
       T rgen();

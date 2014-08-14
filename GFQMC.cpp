@@ -44,48 +44,12 @@ GFQMC::~GFQMC(){ }
  */
 void GFQMC::SetupWalkers(){
 
-   walker.resize(Nw);
-/*
-   for(int i = 0;i < Nw;++i){
+   walker.resize(1);
 
-      char walker_file[200];
+   walker[0].calc_EL(peps);
 
-      sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
-
-      walker[i].load(walker_file);
-
-      walker[i].calc_EL(peps);
-
-      cout << i << "\t" << walker[i].gEL() << "\t" << walker[i].gOverlap() << endl;
-
-   }
-*/
-}
-
-void GFQMC::test(){
-
-   int i = 815;
-/*
-   char walker_file[200];
-
-   sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
-
-   walker[i].load(walker_file);
-*/
-   walker[i].calc_EL(peps);
-
-   cout << walker[i] << endl;
-
-   Distribution dist;
-   dist.construct(walker[i],dtau,-62.8656);
-
-   for(int j = 0;j < dist.size();++j){
-
-      dist.gwalker(j).calc_overlap(peps);
-
-      cout << j << "\t" << -0.5 * dtau * dist.gwalker(j).gOverlap() / walker[i].gOverlap() << "\t" << dist[j] << endl;
-
-   }
+   for(int i = 0;i < Nw;++i)
+      walker.push_back(walker[0]);
 
 }
 
@@ -198,7 +162,7 @@ double GFQMC::propagate(){
       double prev_EL = walker[i].gEL();
 
       //construct distribution
-      dist[myID].construct(walker[i],dtau,0.0);
+      dist[myID].construct(walker[i],dtau,-62.8556);
       dist[myID].check_negative();
 
       double nrm = dist[myID].normalize();

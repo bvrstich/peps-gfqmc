@@ -23,16 +23,12 @@ vector< vector< MPS > > Environment::b;
 vector< SL_PEPS > Environment::U;
 vector< SL_PEPS > Environment::I;
 
-int Environment::D_aux;
-
 /** 
  * initialize all the static variables
  * @param D bond dimension of the trial peps
  * @param D_aux_in auxiliary bond dimension for the contractions
  */
-void Environment::init(int D,int D_aux_in){
-
-   D_aux = D_aux_in;
+void Environment::init(){
 
    t.resize(omp_num_threads);
    b.resize(omp_num_threads);
@@ -42,14 +38,14 @@ void Environment::init(int D,int D_aux_in){
       t[thr].resize(Ly - 1);
       b[thr].resize(Ly - 1);
 
-      b[thr][0] = MPS(D);
-      t[thr][Ly-2] = MPS(D);
+      b[thr][0] = MPS(DT);
+      t[thr][Ly-2] = MPS(DT);
 
-      int dim = D;
+      int dim = DT;
 
       for(int i = 1;i < Ly - 2;++i){
 
-         dim *= D;
+         dim *= DT;
 
          if(dim < D_aux){
 
@@ -79,14 +75,14 @@ void Environment::init(int D,int D_aux_in){
       r[thr].resize(Lx - 1);
       l[thr].resize(Lx - 1);
 
-      l[thr][0] = MPS(D);
-      r[thr][Lx-2] = MPS(D);
+      l[thr][0] = MPS(DT);
+      r[thr][Lx-2] = MPS(DT);
 
-      int dim = D;
+      int dim = DT;
 
       for(int i = 1;i < Lx - 2;++i){
 
-         dim *= D;
+         dim *= DT;
 
          if(dim < D_aux){
 
@@ -113,8 +109,8 @@ void Environment::init(int D,int D_aux_in){
 
    for(int thr = 0;thr < omp_num_threads;++thr){
 
-      U[thr] = SL_PEPS(D);
-      I[thr] = SL_PEPS(D);
+      U[thr] = SL_PEPS(DT);
+      I[thr] = SL_PEPS(DT);
 
    }
 }

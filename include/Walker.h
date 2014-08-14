@@ -75,6 +75,9 @@ class Walker : public vector< bool > {
       //!overlap of nn configurations with trial
       vector<double> nn_over;
 
+      //!max-overlap with trial
+      double overlap;
+
 };
 
 #endif
