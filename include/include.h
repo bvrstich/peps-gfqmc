@@ -21,4 +21,4 @@
 
 #include "Environment.h"
 
-#include "GFQMC.h"
+#include "GFMC.h"

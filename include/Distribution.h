@@ -40,6 +40,8 @@ class Distribution : public vector<double> {
 
       Walker &gwalker(int);
 
+      void check_negative() const;
+
    private:
 
       //!list of final walker states

@@ -16,12 +16,12 @@ namespace global{
 
    int DT;
 
+   int D_aux;
+
    int Lx;
    int Ly;
 
    int d;
-
-   vector< Walker > backup_walker;
 
    PEPS<double> peps;
 
@@ -31,11 +31,12 @@ namespace global{
 
    /**
     * @param DT_in virtual dimension of the trial
+    * @param D_aux_in auxiliary dimension for peps contraction
     * @param d_in physical dimension
     * @param Lx_in x dimension of the square lattice
     * @param Ly_in y dimension of the square lattice
     */
-   void init(int DT_in,int d_in,int Lx_in,int Ly_in){
+   void init(int DT_in,int D_aux_in,int d_in,int Lx_in,int Ly_in){
 
       Lx = Lx_in;
       Ly = Ly_in;
@@ -43,6 +44,7 @@ namespace global{
       d = d_in;
 
       DT = DT_in;
+      D_aux = D_aux_in;
 
 #ifdef _OPENMP
       omp_num_threads = omp_get_max_threads();
@@ -50,14 +52,7 @@ namespace global{
       omp_num_threads = 1;
 #endif
 
-      backup_walker.resize(omp_num_threads);
-
-      char filename[200];
-      sprintf(filename,"/home/bright/bestanden/results/peps/output/%dx%d/D=%d",Lx,Ly,DT);
-
-      peps.resize(Lx*Ly);
-      peps.load(filename);
-      peps.sD(DT_in);
+      peps.set_jastrow(0.74);
 
    }
 

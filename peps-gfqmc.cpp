@@ -26,15 +26,15 @@ int main(int argc,char *argv[]){
    int D_aux = atoi(argv[4]);
 
    //initialize the dimensions of the problem, set the trial
-   global::init(D,d,L,L);
+   global::init(D,D_aux,d,L,L);
    
    //and some static objects
-   Environment::init(D,D_aux);
-
+   Environment::init();
+/*
    double dtau = 0.001;
    int Nw = 1024;
 
-   GFQMC gfqmc(dtau,Nw);
-   gfqmc.walk(1000000);
-
+   GFMC gfmc(dtau,Nw);
+   gfmc.walk(1000000);
+*/
 }

@@ -6,6 +6,10 @@
 #include <complex>
 #include <vector>
 
+#include <btas/common/blas_cxx_interface.h>
+#include <btas/common/TVector.h>
+#include <btas/DENSE/TArray.h>
+
 using std::complex;
 using std::vector;
 
@@ -38,21 +42,15 @@ class Walker : public vector< bool > {
 
       double gOverlap() const;
 
-      double calc_overlap(const PEPS<double> &);
+      const vector<double> &gnn_over() const;
+
+      double gnn_over(int) const;
 
       double gEL() const;
 
       double pot_en() const;
 
       void calc_EL(const PEPS<double> &);
-
-      void save(const char *filename);
-
-      void load(const char *filename);
-
-      int gsign() const;
-
-      void sign_flip();
 
   private:
 
@@ -62,11 +60,11 @@ class Walker : public vector< bool > {
       //!sign of the walker
       int sign;
 
-      //!The walker overlap with the trial wfn
-      double overlap;
-
       //!local energy
       double EL;
+
+      //!overlap of nn configurations with trial
+      vector<double> nn_over;
 
 };
 

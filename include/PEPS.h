@@ -5,6 +5,10 @@
 #include <fstream>
 #include <vector>
 
+#include <btas/common/blas_cxx_interface.h>
+#include <btas/common/TVector.h>
+#include <btas/DENSE/TArray.h>
+
 using std::ostream;
 using std::vector;
 
@@ -41,6 +45,8 @@ class PEPS : public vector< TArray<T,5> > {
       TArray<T,5> &operator()(int,int);
 
       void load(const char *);
+
+      void set_jastrow(double);
 
    private:
 

@@ -1,5 +1,5 @@
-#ifndef GFQMC_H
-#define GFQMC_H
+#ifndef GFMC_H
+#define GFMC_H
 
 #include <iostream>
 #include <iomanip>
@@ -9,15 +9,18 @@
 using std::complex;
 using std::vector;
 
-class GFQMC {
+class Walker;
+class Distribution;
+
+class GFMC {
 
    public:
    
       //constructor with input trialwavefunction
-      GFQMC(double,int);
+      GFMC(double,int);
       
       //Destructor
-      virtual ~GFQMC();
+      virtual ~GFMC();
       
       //Let the walkers propagate for n_steps steps
       void walk(int);
@@ -39,6 +42,8 @@ class GFQMC {
       //Setup the walkers
       void SetupWalkers();
 
+      void dump(const char *);
+
    private:
       
       //!The total desired number of walkers
@@ -50,9 +55,9 @@ class GFQMC {
       //!projected energy at current timestep
       double EP;
 
-      //!projected energy at current timestep, absolute value of all the contributions (all positive trial)
-      double EP_abs;
-      
+      //!target energy, growth estimate
+      double ET;
+
       //!The walkers
       std::vector<Walker> walker;
 

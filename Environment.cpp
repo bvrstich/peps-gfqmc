@@ -23,16 +23,12 @@ vector< vector< MPS > > Environment::b;
 vector< SL_PEPS > Environment::U;
 vector< SL_PEPS > Environment::I;
 
-int Environment::D_aux;
-
 /** 
  * initialize all the static variables
  * @param D bond dimension of the trial peps
  * @param D_aux_in auxiliary bond dimension for the contractions
  */
-void Environment::init(int D,int D_aux_in){
-
-   D_aux = D_aux_in;
+void Environment::init(){
 
    t.resize(omp_num_threads);
    b.resize(omp_num_threads);
@@ -42,14 +38,14 @@ void Environment::init(int D,int D_aux_in){
       t[thr].resize(Ly - 1);
       b[thr].resize(Ly - 1);
 
-      b[thr][0] = MPS(D);
-      t[thr][Ly-2] = MPS(D);
+      b[thr][0] = MPS(DT);
+      t[thr][Ly-2] = MPS(DT);
 
-      int dim = D;
+      int dim = DT;
 
       for(int i = 1;i < Ly - 2;++i){
 
-         dim *= D;
+         dim *= DT;
 
          if(dim < D_aux){
 
@@ -79,14 +75,14 @@ void Environment::init(int D,int D_aux_in){
       r[thr].resize(Lx - 1);
       l[thr].resize(Lx - 1);
 
-      l[thr][0] = MPS(D);
-      r[thr][Lx-2] = MPS(D);
+      l[thr][0] = MPS(DT);
+      r[thr][Lx-2] = MPS(DT);
 
-      int dim = D;
+      int dim = DT;
 
       for(int i = 1;i < Lx - 2;++i){
 
-         dim *= D;
+         dim *= DT;
 
          if(dim < D_aux){
 
@@ -113,8 +109,8 @@ void Environment::init(int D,int D_aux_in){
 
    for(int thr = 0;thr < omp_num_threads;++thr){
 
-      U[thr] = SL_PEPS(D);
-      I[thr] = SL_PEPS(D);
+      U[thr] = SL_PEPS(DT);
+      I[thr] = SL_PEPS(DT);
 
    }
 }
@@ -151,7 +147,7 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
          //compress in sweeping fashion
          b[myID][r].compress(D_aux,tmp,1);
 
-      }
+     }
 
       //then construct top layer
       t[myID][Ly - 2].fill('t',U[myID]);
@@ -212,42 +208,6 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
       }
 
    }
-
-}
-
-/**
- * construct the environment mps's for the input PEPS, only those needed for overlap calculation:
- * @param peps input PEPS<double>
- * @param walker input Walker (who would have guessed)
- */
-void Environment::calc_overlap_env(const PEPS< double > &peps,const Walker &walker){
-
-#ifdef _OPENMP
-   int myID = omp_get_thread_num();
-#else
-   int myID = 0;
-#endif
-
-   //construct bottom layer
-   b[myID][0].fill('b',U[myID]);
-
-   for(int r = 1;r < Ly - 1;++r){
-
-      MPS tmp(b[myID][r - 1]);
-
-      //apply to form MPS with bond dimension D^2
-      tmp.gemv('L','H',r,U[myID]);
-
-      //reduce the dimensions of the edge states using thin svd
-      tmp.cut_edges();
-
-      //compress in sweeping fashion
-      b[myID][r].compress(D_aux,tmp,1);
-
-   }
-
-   //then construct top layer
-   t[myID][Ly - 2].fill('t',U[myID]);
 
 }
 

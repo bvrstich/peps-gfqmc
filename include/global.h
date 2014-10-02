@@ -6,12 +6,17 @@
 #include <vector>
 #include <complex>
 
+#include <btas/common/blas_cxx_interface.h>
+#include <btas/common/TVector.h>
+#include <btas/DENSE/TArray.h>
+
 using std::ostream;
 using std::vector;
 using std::complex;
 
 using namespace btas;
 
+#include "Walker.h"
 #include "PEPS.h"
 #include "Walker.h"
 
@@ -31,16 +36,16 @@ namespace global {
    //!virtual dimension of the trial
    extern int DT;
 
+   //!virtual dimension of the trial
+   extern int D_aux;
+
    //!number of omp threads
    extern int omp_num_threads;
-
-   //!backup walkers for stability of algorithm
-   extern vector< Walker > backup_walker;
 
    //!trial wavefunction
    extern PEPS<double> peps;
 
-   void init(int,int,int,int);
+   void init(int,int,int,int,int);
 
    template<typename T>
       T rgen();

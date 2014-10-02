@@ -19,11 +19,11 @@ using std::ios;
 using namespace global;
 
 /**
- * constructor of the GFQMC object, takes input parameters that define the QMC walk.
+ * constructor of the GFMC object, takes input parameters that define the QMC walk.
  * @param dtau_in timestep
  * @param Nw_in number of Walker states
  */
-GFQMC::GFQMC(double dtau_in,int Nw_in){
+GFMC::GFMC(double dtau_in,int Nw_in){
 
    this->dtau = dtau_in;
    this->Nw = Nw_in;
@@ -37,48 +37,33 @@ GFQMC::GFQMC(double dtau_in,int Nw_in){
 /**
  * unnecessary destructor...
  */
-GFQMC::~GFQMC(){ }
+GFMC::~GFMC(){ }
 
 /**
- * initialize the walkers
+ * initialize the walkers: read in distribution from walkers dir
  */
-void GFQMC::SetupWalkers(){
+void GFMC::SetupWalkers(){
 
-   walker.resize(1);
+   walker.resize(Nw);
+
+   walker[0] = Walker(0);
    walker[0].calc_EL(peps);
 
-   for(int i = 1;i < Nw;++i)
-      walker.push_back(walker[0]);
+   walker[1] = Walker(1);
+   walker[1].calc_EL(peps);
 
-}
+   for(int i = 2;i < Nw;++i){
 
-void GFQMC::test(){
-
-   int i = 205;
-
-   char walker_file[200];
-
-   sprintf(walker_file,"output/%dx%d/D=%d/walkers/%d.walk",Lx,Ly,DT,i);
-
-   walker[i].load(walker_file);
-
-   Distribution dist;
-   dist.construct(walker[i],dtau,0.0);
-
-   for(int j = 0;j < dist.size();++j){
-
-      cout << j << endl;
-      dist.gwalker(j).calc_overlap(peps);
-      cout << dist.gwalker(j).gOverlap() << endl;
-      cout << endl;
-      cout << dist.gwalker(j) << endl;
-      cout << endl;
+      if(i % 2 == 0)
+         walker[i] = walker[0];
+      else 
+         walker[i] = walker[1];
 
    }
 
 }
 
-void GFQMC::walk(const int n_steps){
+void GFMC::walk(const int n_steps){
 
    //set projected energy
    sEP();
@@ -92,7 +77,7 @@ void GFQMC::walk(const int n_steps){
    output.close();
 
 #ifdef _DEBUG
-   cout << "Energy at start = " << EP << "\t" << EP_abs << endl;
+   cout << "Energy at start = " << EP << "\t" << endl;
    cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -103,7 +88,7 @@ void GFQMC::walk(const int n_steps){
 
       double scaling = Nw / wsum;
 
-      double ET = 1.0/dtau * ( 1 - 1.0/scaling);
+      ET = 1.0/dtau * ( 1 - 1.0/scaling);
 
       //calculate the energy
       sEP();
@@ -111,7 +96,7 @@ void GFQMC::walk(const int n_steps){
 #ifdef _DEBUG
       cout << "        Step = " << step << endl;
       cout << "   # walkers = " << walker.size() << endl;
-      cout << "         E_P = " << EP << "\t" << EP_abs << endl;
+      cout << "         E_P = " << EP << endl;
       cout << "         E_T = " << ET << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
@@ -121,19 +106,10 @@ void GFQMC::walk(const int n_steps){
       //Based on scaling, first control the population on each rank separately, and then balance the population over the ranks (uses MPI)
       PopulationControl(scaling);
 
-      double max_ov = 0.0;
-      double min_ov = 1.0;
-
       double max_en = -100.0;
       double min_en = 100.0;
 
-      for(int i = 0;i < walker.size();++i){
-
-         if(max_ov < std::abs(walker[i].gOverlap()))
-            max_ov = std::abs(walker[i].gOverlap());
-
-         if(min_ov > std::abs(walker[i].gOverlap()))
-            min_ov = std::abs(walker[i].gOverlap());
+      for(unsigned int i = 0;i < walker.size();++i){
 
          if(max_en < walker[i].gEL())
             max_en = walker[i].gEL();
@@ -143,10 +119,17 @@ void GFQMC::walk(const int n_steps){
 
       }
 
+      if(step % 1000 == 0){
+
+         char walker_file[200];
+         sprintf(walker_file,"output/%dx%d/D=%d.walk",Lx,Ly,DT);
+
+         dump(walker_file);
+
+      }
+
+
 #ifdef _DEBUG
-      cout << endl;
-      cout << "Minimal Overlap:\t" << min_ov << endl;
-      cout << "Maximal Overlap:\t" << max_ov << endl;
       cout << endl;
       cout << "Minimal Energy:\t" << min_en << endl;
       cout << "Maximal Energy:\t" << max_en << endl;
@@ -160,15 +143,12 @@ void GFQMC::walk(const int n_steps){
 /**
  * Here the trotter terms, propagator terms are applied to every walker individually.
  */
-double GFQMC::propagate(){
+double GFMC::propagate(){
 
    double sum = 0.0;
-   int num_rej = 0;
 
-   double width = sqrt(2.0/dtau);
-
-#pragma omp parallel for reduction(+: sum,num_rej)
-   for(int i = 0;i < walker.size();i++){
+#pragma omp parallel for reduction(+: sum)
+   for(unsigned int i = 0;i < walker.size();i++){
 
 #ifdef _OPENMP
       int myID = omp_get_thread_num();
@@ -176,11 +156,9 @@ double GFQMC::propagate(){
       int myID = 0;
 #endif
 
-      //backup the walker for stability
-      backup_walker[myID] = walker[i];
-
       //construct distribution
       dist[myID].construct(walker[i],dtau,0.0);
+      dist[myID].check_negative();
       double nrm = dist[myID].normalize();
 
       //draw new walker
@@ -189,21 +167,10 @@ double GFQMC::propagate(){
       walker[i] = dist[myID].gwalker(pick);
 
       //multiply weight
-      walker[i].multWeight(1.0 - dtau * walker[i].gEL() );
+      walker[i].multWeight(nrm);
 
       //calculate new properties
       walker[i].calc_EL(peps);
-
-      double EL = walker[i].gEL();
-
-      if( (EL < EP - width) || (EL > EP + width) ){//very rare event, will cause numerical unstability
-
-         num_rej++;
-
-         //copy the state back!
-         walker[i] = backup_walker[myID];
-
-      }
 
       sum += walker[i].gWeight();
 
@@ -216,16 +183,15 @@ double GFQMC::propagate(){
 /**
  * redistribute the weights to stabilize the walk, keep the population in check
  */
-void GFQMC::PopulationControl(double scaling){
+void GFMC::PopulationControl(double scaling){
 
    double minw = 1.0;
    double maxw = 1.0;
 
-   double sum = 0.0;
-
-   for(int i = 0;i < walker.size();i++){
-
+   for(unsigned int i = 0;i < walker.size();i++)
       walker[i].multWeight(scaling);
+
+   for(unsigned int i = 0;i < walker.size();i++){
 
       double weight = walker[i].gWeight();
 
@@ -235,9 +201,9 @@ void GFQMC::PopulationControl(double scaling){
       if(weight > maxw)
          maxw = weight;
 
-      if (weight < 0.25){ //Energy doesn't change statistically
+      if (weight < 0.10){ //Energy doesn't change statistically
 
-         int nCopies = (int) ( weight + rgen_pos<double>());
+         int nCopies = (int) ( weight + RN());
 
          if(nCopies == 0){
 
@@ -253,9 +219,9 @@ void GFQMC::PopulationControl(double scaling){
 
       }
 
-      if(weight > 1.5){ //statically energy doesn't change
+      if(weight > 2.0){ //statically energy doesn't change
 
-         int nCopies =(int) ( weight + rgen_pos<double>());
+         int nCopies =(int) ( weight + RN());
          double new_weight = weight / (double) nCopies;
 
          walker[i].sWeight(new_weight);
@@ -267,16 +233,22 @@ void GFQMC::PopulationControl(double scaling){
          for(int n = 1;n < nCopies;++n){
 
             Walker nw = walker[i];
-
             walker.push_back(nw);
 
          }
 
       }
 
-      sum += weight;
-
    }
+
+   double sum = 0.0;
+
+   for(unsigned int i = 0;i < walker.size();++i)
+      sum += walker[i].gWeight();
+   
+   //rescale the weights to unity for correct ET estimate in next iteration
+   for(unsigned int i = 0;i < walker.size();++i)
+      walker[i].multWeight((double)Nw/sum);
 
 #ifdef _DEBUG
    cout << endl;
@@ -285,6 +257,7 @@ void GFQMC::PopulationControl(double scaling){
 
    cout << "The min. encountered weight is " << minw << " ." << endl;
    cout << "The max. encountered weight is " << maxw << " ." << endl;
+   cout << endl;
 #endif
 
 }
@@ -292,44 +265,55 @@ void GFQMC::PopulationControl(double scaling){
 /**
  * set total projected energy of the walkers at a certain timestep
  */
-void GFQMC::sEP(){
+void GFMC::sEP(){
 
    double projE_num = 0.0;
    double projE_den = 0.0;
 
-   double projE_abs_num = 0.0;
-   double projE_abs_den = 0.0;
-
-   for(int wi = 0;wi < walker.size();wi++){
+   for(unsigned int wi = 0;wi < walker.size();wi++){
 
       double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
-      double overlap = walker[wi].gOverlap();
 
       //For the projected energy
-      projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en * overlap;
-      projE_den += walker[wi].gsign() * walker[wi].gWeight() * overlap;
-
-      projE_abs_num += std::abs(walker[wi].gWeight() * w_loc_en * overlap);
-      projE_abs_den += std::abs(walker[wi].gWeight() * overlap);
+      projE_num += walker[wi].gWeight() * w_loc_en;
+      projE_den += walker[wi].gWeight();
 
    }
 
    EP = projE_num / projE_den;
-   EP_abs = -projE_abs_num / projE_abs_den;
 
 }
 
 /**
  * write output to file
  */
-void GFQMC::write(const int step){
+void GFMC::write(const int step){
 
    char filename[200];
    sprintf(filename,"output/%dx%d/D=%d.txt",Lx,Ly,DT);
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << EP_abs << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << ET << endl;
    output.close();
+
+}
+
+/**
+ * dump the walkers to a single file
+ */
+void GFMC::dump(const char *filename){
+
+   ofstream out(filename);
+   out.precision(16);
+
+   for(unsigned int i = 0;i < walker.size();++i){
+
+      for(int r = 0;r < Ly;++r)
+         for(int c = 0;c < Lx;++c)
+            out << walker[i][r*Lx + Ly] << " ";
+      out << endl;
+
+   }
 
 }
