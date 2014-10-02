@@ -37,10 +37,10 @@ int main(int argc,char *argv[]){
    int myID = 0;
 #endif
 
-   double dtau = 0.001;
+   double dtau = 0.01;
    int Nw = 1000;
 
    GFMC gfmc(dtau,Nw);
-   gfmc.walk(1000);
+   gfmc.walk(1000000);
   
 }
