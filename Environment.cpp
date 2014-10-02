@@ -113,6 +113,7 @@ void Environment::init(){
       I[thr] = SL_PEPS(DT);
 
    }
+
 }
 
 /**
@@ -214,7 +215,7 @@ void Environment::calc_env(char option,const PEPS< double > &peps,const Walker &
 /**
  * test if the enviroment is correctly contracted
  */
-void Environment::test_env(){
+void Environment::test_env(char option){
 
 #ifdef _OPENMP
    int myID = omp_get_thread_num();
@@ -222,17 +223,23 @@ void Environment::test_env(){
    int myID = 0;
 #endif
 
-   cout << endl;
-   cout << "FROM BOTTOM TO TOP" << endl;
-   cout << endl;
-   for(int i = 0;i < Ly - 1;++i)
-      cout << i << "\t" << b[myID][i].dot(t[myID][i]) << endl;
+   if(option == 'H'){
 
-   cout << endl;
-   cout << "FROM LEFT TO RIGHT" << endl;
-   cout << endl;
-   for(int i = 0;i < Lx - 1;++i)
-      cout << i << "\t" << r[myID][i].dot(l[myID][i]) << endl;
-   cout << endl;
+      cout << endl;
+      cout << "FROM BOTTOM TO TOP" << endl;
+      cout << endl;
+      for(int i = 0;i < Ly - 1;++i)
+         cout << i << "\t" << b[myID][i].dot(t[myID][i]) << endl;
+   }
+   else{
+
+      cout << endl;
+      cout << "FROM LEFT TO RIGHT" << endl;
+      cout << endl;
+      for(int i = 0;i < Lx - 1;++i)
+         cout << i << "\t" << r[myID][i].dot(l[myID][i]) << endl;
+      cout << endl;
+
+   }
 
 }

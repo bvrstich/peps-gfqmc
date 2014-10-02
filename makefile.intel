@@ -7,8 +7,8 @@
 # -----------------------------------------------------------------------------
 #   Sources for all modules
 # -----------------------------------------------------------------------------
-BINNAME = peps-gfqmc
-CPPSRC	= peps-gfqmc.cpp\
+BINNAME = peps-gfmc
+CPPSRC	= peps-gfmc.cpp\
            Random.cpp\
            global.cpp\
            PEPS.cpp\
@@ -18,7 +18,7 @@ CPPSRC	= peps-gfqmc.cpp\
            compress.cpp\
            Environment.cpp\
            SL_PEPS.cpp\
-           GFQMC.cpp\
+           GFMC.cpp\
            btas_defs.cpp
 
 OBJ	= $(CPPSRC:.cpp=.o)
@@ -42,8 +42,8 @@ CXX	= icpc
 # -----------------------------------------------------------------------------
 #   Compiler & Linker flags
 # -----------------------------------------------------------------------------
-CFLAGS	= -I$(INCLUDE) -std=c++11 -openmp -D_HAS_CBLAS -D_HAS_INTEL_MKL -O3 -ipo
-LDFLAGS	= -openmp -O3 -ipo
+CFLAGS	= -I$(INCLUDE) -std=c++11 -openmp -DNDEBUG -D_HAS_CBLAS -D_HAS_INTEL_MKL -O3 -ipo
+LDFLAGS	= -DNDEBUG -openmp -O3 -ipo
 
 # =============================================================================
 #   Targets & Rules

@@ -52,6 +52,7 @@ namespace global{
       omp_num_threads = 1;
 #endif
 
+      peps.resize(Lx*Ly);
       peps.set_jastrow(0.74);
 
    }
