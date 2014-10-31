@@ -14,15 +14,6 @@ using std::ofstream;
 
 using namespace global;
 
-//statics
-vector< vector< MPS > > Environment::l;
-vector< vector< MPS > > Environment::r;
-vector< vector< MPS > > Environment::t;
-vector< vector< MPS > > Environment::b;
-
-vector< SL_PEPS > Environment::U;
-vector< SL_PEPS > Environment::I;
-
 /** 
  * initialize all the static variables
  * @param D bond dimension of the trial peps

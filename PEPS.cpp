@@ -182,8 +182,6 @@ void PEPS<T>::load(const char *filename){
 template<>
 void PEPS<double>::set_jastrow(double f) {
 
-   enum {i,j,k,l,m,n,o,p,q,r,s};
-
    D = 2;
 
    //bottom row, first site

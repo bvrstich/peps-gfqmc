@@ -176,7 +176,6 @@ void Walker::calc_EL(const PEPS< double > &peps){
 #endif
 
    // ---- || evaluate the expectation values in an MPO/MPS manner, first from bottom to top, then left to right || ----
-
    double ward;
 
    EL = 0.0;

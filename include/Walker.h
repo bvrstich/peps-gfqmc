@@ -18,7 +18,7 @@ using namespace btas;
 #include "PEPS.h"
 
 /**
- * class definition of Walker, made to describe the product state walkers. An array of L*L booleans vector. Each site represents a spin up (0) or spin down (1)
+ * class definition of Walker, made to describe the peps walkers. An array of L*L booleans vector. Each site represents a spin up (0) or spin down (1)
  */
 class Walker : public vector< bool > {
 
@@ -40,8 +40,6 @@ class Walker : public vector< bool > {
 
       void multWeight(double);
 
-      double gOverlap() const;
-
       const vector<double> &gnn_over() const;
 
       double gnn_over(int) const;
@@ -56,9 +54,6 @@ class Walker : public vector< bool > {
 
       //!The walker weight
       double weight;
-
-      //!sign of the walker
-      int sign;
 
       //!local energy
       double EL;

@@ -18,7 +18,8 @@ using namespace btas;
 
 #include "Walker.h"
 #include "PEPS.h"
-#include "Walker.h"
+
+class Environment;
 
 namespace global {
 
@@ -38,6 +39,9 @@ namespace global {
 
    //!virtual dimension of the trial
    extern int D_aux;
+
+   //!environment object
+   extern std::vector< Environment > env;
 
    //!number of omp threads
    extern int omp_num_threads;

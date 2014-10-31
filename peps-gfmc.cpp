@@ -28,19 +28,13 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
-   //and some static objects
-   Environment::init();
-
-#ifdef _OPENMP
-   int myID = omp_get_thread_num();
-#else
-   int myID = 0;
-#endif
-
+/*
    double dtau = 0.01;
    int Nw = 1000;
 
    GFMC gfmc(dtau,Nw);
-   gfmc.walk(1000000);
+   gfmc.walk(1);
+*/
+   return 0;
   
 }
