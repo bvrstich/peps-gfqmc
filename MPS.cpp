@@ -15,26 +15,55 @@ using std::ofstream;
 using namespace global;
 
 /** 
- * empty constructor: just sets the length of the vector
+ * empty constructor
  */
-MPS::MPS() : vector< TArray<double,3> >( Lx ) { }
+MPS::MPS() : vector< TArray<double,3> >( ) { }
 
 /** 
- * standard constructor: just takes in
+ * standard constructor: just takes in, sets the lenght of the tensors
  * @param L_in length of the chain
- * @param D_in virtual max bond dimension
- * allocates the tensors and fills them randomly
  */
-MPS::MPS(int D_in) : vector< TArray<double,3> >( Lx ) {
+MPS::MPS(int L_in) : vector< TArray<double,3> >( L_in ) { }
 
-   this->D = D_in;
+/** 
+ * standard constructor: just takes in, sets the lenght of the tensors
+ * @param L_in length of the chain
+ * @param d_in physical dimension
+ * @param D_in virtual dimension
+ */
+MPS::MPS(int L_in,int d_in,int D_in) : vector< TArray<double,3> >( L_in ) {
 
-   (*this)[0].resize(1,D,D);
+   D = D_in;
+   d = d_in;
 
-   for(int c = 1;c < Lx-1;++c)
-      (*this)[c].resize(D,D,D);
+   vector<int> vdim(L_in + 1);
 
-   (*this)[Lx-1].resize(D,D,1);
+   vdim[0] = 1;
+
+   for(int i = 1;i < L_in;++i){
+
+      int tmp = vdim[i - 1] * d;
+
+      if(tmp < D)
+         vdim[i] = tmp;
+      else 
+         vdim[i] = D;
+
+   }
+
+   vdim[L_in] = 1;
+
+   for(int i = L_in - 1;i > 0;--i){
+
+      int tmp = vdim[i + 1] * d;
+
+      if(tmp < vdim[i])
+         vdim[i] = tmp;
+
+   }
+
+   for(int i = 0;i < this->size();++i)
+      (*this)[i].resize(vdim[i],d,vdim[i+1]);
 
 }
 
@@ -44,6 +73,7 @@ MPS::MPS(int D_in) : vector< TArray<double,3> >( Lx ) {
 MPS::MPS(const MPS &mps_copy) : vector< TArray<double,3> >(mps_copy) {
 
    this->D = mps_copy.gD();
+   this->d = mps_copy.gd();
 
 }
 
@@ -68,6 +98,15 @@ void MPS::fill_Random(){
 int MPS::gD() const {
 
    return D;
+
+}
+
+/**
+ * @return physical dimension of the MPS
+ */
+int MPS::gd() const {
+
+   return d;
 
 }
 

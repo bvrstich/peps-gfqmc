@@ -59,7 +59,6 @@ class Environment {
       void sD(int);
       void sD_aux(int);
 
-
       void calc(char,const PEPS< double > &,const Walker &walker);
 
       void test(char);

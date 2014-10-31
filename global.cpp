@@ -53,7 +53,7 @@ namespace global{
 #endif
 
       peps.resize(Lx*Ly);
-      peps.set_jastrow(0.74);
+      peps.initialize_jastrow(0.74);
 
    }
 

@@ -16,9 +16,10 @@ using std::complex;
 
 using namespace btas;
 
-#include "Walker.h"
-#include "PEPS.h"
+template<typename T>
+class PEPS;
 
+class Walker;
 class Environment;
 
 namespace global {

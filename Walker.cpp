@@ -168,7 +168,7 @@ double Walker::pot_en() const {
  * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(const PEPS< double > &peps){
-
+/*
 #ifdef _OPENMP
    int myID = omp_get_thread_num();
 #else
@@ -980,5 +980,5 @@ void Walker::calc_EL(const PEPS< double > &peps){
    }
 
    EL += 0.25 * cnt;
-
+*/
 }

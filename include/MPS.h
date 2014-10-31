@@ -22,7 +22,9 @@ class MPS : public vector< TArray<double,3> > {
 
       MPS();
 
-      MPS(int D);
+      MPS(int);
+
+      MPS(int,int,int);
 
       //copy constructor
       MPS(const MPS &);
@@ -31,6 +33,8 @@ class MPS : public vector< TArray<double,3> > {
       virtual ~MPS();
 
       int gD() const;
+
+      int gd() const;
 
       void fill_Random();
 
@@ -54,6 +58,9 @@ class MPS : public vector< TArray<double,3> > {
 
       //!dimension of the bonds
       int D;
+
+      //!physical dimension
+      int d;
 
 };
 
