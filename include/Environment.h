@@ -69,7 +69,7 @@ class Environment {
 
       void test(bool);
 
-      void add_layer(const char,int,const PEPS<double> &);
+      void add_layer(const char,int,bool);
 
    private:
 

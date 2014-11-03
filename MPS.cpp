@@ -87,8 +87,14 @@ MPS::~MPS(){ }
  */
 void MPS::fill_Random(){
 
-   for(int i = 0;i < this->size();++i)
-      (*this)[i].generate(rgen< double >);
+   DArray<2> L;
+
+   for(int i = this->size() - 1;i >= 0;--i){
+
+      (*this)[i].generate(rgen<double>);
+      Gelqf(L,(*this)[i]);
+
+   }
 
 }
 
@@ -181,242 +187,6 @@ void MPS::canonicalize(const BTAS_SIDE &dir,bool norm){
 }
 
 /**
- * find an approximate form of the state 'mps' compressed to a bond dimension 'Dc' by performing an SVD on an non-canonical state.
- * @param dir Left or Right - going compression
- * @param Dc the compressed dimension
- * @param mps state to be compressed
- */
-void MPS::guess(const BTAS_SIDE &dir,int Dc,const MPS &mps){
-
-   int L = mps.size();
-
-   if(dir == Left){
-
-      TArray<double,3> U;
-      TArray<double,2> V;
-      TArray<double,1> S;
-
-      Gesvd('S','S',mps[0],S,U,V,Dc);
-
-      (*this)[0] = std::move(U);
-
-      //multiply S to V
-      Dimm(S,V);
-
-      //and contract V with mps on next site
-      (*this)[1].clear();
-
-      Contract(1.0,V,shape(1),mps[1],shape(0),0.0,(*this)[1]);
-
-      for(int i = 1;i < L - 1;++i){
-
-         Gesvd('S','S',(*this)[i],S,U,V,Dc);
-
-         (*this)[i] = std::move(U);
-
-         //multiply S to V
-         Dimm(S,V);
-
-         //and contract V with mps on next site
-         (*this)[i + 1].clear();
-
-         Contract(1.0,V,shape(1),mps[i + 1],shape(0),0.0,(*this)[i + 1]);
-
-      }
-
-   }
-   else{
-
-      TArray<double,2> U;
-      TArray<double,3> V;
-      TArray<double,1> S;
-
-      Gesvd('S','S',mps[L - 1],S,U,V,Dc);
-
-      (*this)[L - 1] = std::move(V);
-
-      //multiply U and S
-      Dimm(U,S);
-
-      //and contract U with mps on previous site
-      (*this)[L - 2].clear();
-
-      Contract(1.0,mps[L - 2],shape(2),U,shape(0),0.0,(*this)[L - 2]);
-
-      for(int i = L - 2;i > 0;--i){
-
-         Gesvd('S','S',(*this)[i],S,U,V,Dc);
-
-         (*this)[i] = std::move(V);
-
-         //multiply S to V
-         Dimm(U,S);
-
-         //and contract V with mps on next site
-         (*this)[i - 1].clear();
-
-         Contract(1.0,mps[i - 1],shape(2),U,shape(0),0.0,(*this)[i - 1]);
-
-      }
-
-   }
-
-   if(Dc < mps.gD())
-      this->D = Dc;
-   else
-      Dc = mps.gD();
-
-}
-
-/**
- * find the best compression of the state 'mps' a bond dimension 'Dc' by optimizing the tensor in a sweeping fashion
- * @param Dc the compressed dimension
- * @param mps state to be compressed
- */
-void MPS::compress(int Dc,const MPS &mps,int n_iter){
-
-   int L = mps.size();
-
-   //initial guess by performing svd compression of uncanonicalized state: output is right-canonicalized state
-   guess(Right,Dc,mps);
-
-   //construct renormalized operators
-   std::vector< TArray<double,2> > RO(L - 1);
-   std::vector< TArray<double,2> > LO(L - 1);
-
-   compress::init_ro(Right,RO,mps,*this);
-
-   int iter = 0;
-
-   while(iter < n_iter){
-
-      //first site
-      int M = mps[0].shape(1);
-      int N = RO[0].shape(0);
-      int K = mps[0].shape(2);
-
-      blas::gemm(CblasRowMajor,CblasNoTrans,CblasConjTrans, M, N, K, 1.0, mps[0].data(),K,RO[0].data(),K,0.0,(*this)[0].data(),N);
-
-      //QR
-      Geqrf((*this)[0],RO[0]);
-
-      //paste to next matrix
-      TArray<double,3> tmp;
-
-      M = RO[0].shape(0);
-      N = (*this)[1].shape(1) * (*this)[1].shape(2);
-      K = RO[0].shape(1);
-
-      tmp.resize(shape(M,(*this)[1].shape(1),(*this)[1].shape(2)));
-
-      blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, RO[0].data(),K,(*this)[1].data(),N,0.0,tmp.data(),N);
-
-      (*this)[1] = std::move(tmp);
-
-      compress::update_L(0,LO,mps,*this);
-
-      for(int i = 1;i < L - 1;++i){
-
-         M = mps[i].shape(0) * mps[i].shape(1);
-         N = RO[i].shape(0);
-         K = RO[i].shape(1);
-
-         tmp.resize(shape(mps[i].shape(0),mps[i].shape(1),N));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasConjTrans, M, N, K, 1.0, mps[i].data(),K,RO[i].data(),K,0.0,tmp.data(),N);
-
-         M = LO[i-1].shape(0);
-         N = tmp.shape(1)*tmp.shape(2);
-         K = tmp.shape(0);
-
-         (*this)[i].resize(shape(LO[i-1].shape(0),mps[i].shape(1),RO[i].shape(0)));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, LO[i-1].data(),K,tmp.data(),N,0.0,(*this)[i].data(),N);
-
-         Geqrf((*this)[i],RO[i]);
-
-         //paste to next matrix
-         M = RO[i].shape(0);
-         N = (*this)[i+1].shape(1) * (*this)[i+1].shape(2);
-         K = RO[i].shape(1);
-
-         tmp.resize(shape(M,(*this)[i+1].shape(1),(*this)[i+1].shape(2)));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, RO[i].data(),K,(*this)[i+1].data(),N,0.0,tmp.data(),N);
-
-         (*this)[i+1] = std::move(tmp);
-
-         compress::update_L(i,LO,mps,*this);
-
-      }
-
-      //and backward!
-      M = LO[L-2].shape(0);
-      N = (*this)[L-1].shape(1);
-      K = LO[L-2].shape(1);
-
-      blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, LO[L-2].data(),K,mps[L-1].data(),N,0.0,(*this)[L-1].data(),N);
-
-      //LQ
-      Gelqf(LO[L - 2],(*this)[L - 1]);
-
-      //paste to previous matrix
-      M = (*this)[L-2].shape(0)*(*this)[L-2].shape(1);
-      N = LO[L-2].shape(1);
-      K = LO[L-2].shape(0);
-
-      tmp.resize(shape((*this)[L-2].shape(0),(*this)[L-2].shape(1),N));
-
-      blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, (*this)[L-2].data(),K,LO[L-2].data(),N,0.0,tmp.data(),N);
-
-      (*this)[L - 2] = std::move(tmp);
-
-      compress::update_R(L-1,RO,mps,*this);
-
-      for(int i = L - 2;i > 0;--i){
-
-         M = mps[i].shape(0) * mps[i].shape(1);
-         N = RO[i].shape(0);
-         K = RO[i].shape(1);
-
-         tmp.resize(shape(mps[i].shape(0),mps[i].shape(1),N));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasConjTrans, M, N, K, 1.0, mps[i].data(),K,RO[i].data(),K,0.0,tmp.data(),N);
-
-         M = LO[i-1].shape(0);
-         N = tmp.shape(1)*tmp.shape(2);
-         K = tmp.shape(0);
-
-         (*this)[i].resize(shape(LO[i-1].shape(0),mps[i].shape(1),RO[i].shape(0)));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, LO[i-1].data(),K,tmp.data(),N,0.0,(*this)[i].data(),N);
-
-         Gelqf(LO[i],(*this)[i]);
-
-         //paste to previous matrix
-         M = (*this)[i-1].shape(0)*(*this)[i-1].shape(1);
-         N = LO[i].shape(1);
-         K = LO[i].shape(0);
-
-         tmp.resize(shape((*this)[i-1].shape(0),(*this)[i-1].shape(1),N));
-
-         blas::gemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, M, N, K, 1.0, (*this)[i-1].data(),K,LO[i].data(),N,0.0,tmp.data(),N);
-
-         (*this)[i-1] = std::move(tmp);
-
-         compress::update_R(i,RO,mps,*this);
-
-      }
-
-      ++iter;
-
-   }
-
-   this->D = Dc;
-
-}
-
-/**
  * @param bra the bra of the inner product
  * @return the inner product of two MPS's, with *this being the ket
  */
@@ -443,74 +213,6 @@ double MPS::dot(const MPS &bra) const {
    return E(0,0);
 
 }
-
-/**
- * reduce the dimension of the edge states after MPO action using thin svd.
- */
-void MPS::cut_edges() {
-
-   int L = this->size();
-
-   //Left
-   TArray<double,3> U;
-   TArray<double,2> V;
-   TArray<double,1> S;
-
-   int i = 0;
-
-   //easy compression
-   while( (*this)[i].shape(0)*(*this)[i].shape(1) < (*this)[i].shape(2) ){
-
-      U.clear();
-      S.clear();
-      V.clear();
-
-      Gesvd('S','S',(*this)[i],S,U,V);
-
-      (*this)[i] = std::move(U);
-
-      //multiply S to V
-      Dimm(S,V);
-
-      U.clear();
-
-      //and contract V with mps on next site
-      Contract(1.0,V,shape(1),(*this)[i+1],shape(0),0.0,U);
-
-      (*this)[i+1] = std::move(U);
-
-      ++i;
-
-   }
-
-   i = L - 1;
-
-   while( (*this)[i].shape(0) > (*this)[L - 1].shape(1)*(*this)[i].shape(2) ){
-
-      //Right
-      U.clear();
-      V.clear();
-      S.clear();
-
-      Gesvd('S','S',(*this)[i],S,V,U);
-
-      (*this)[i] = std::move(U);
-
-      //multiply U and S
-      Dimm(V,S);
-
-      //and contract U with mps on previous site
-      U.clear();
-
-      Contract(1.0,(*this)[i-1],shape(2),V,shape(0),0.0,U);
-      (*this)[i-1] = std::move(U);
-
-      --i;
-
-   }
-
-}
-
 
 /**
  * normalize the MPS
@@ -584,176 +286,40 @@ void MPS::fill(char option,const SL_PEPS &slp) {
 
 }
 
+ostream &operator<<(ostream &output,const MPS &mps_p){
+
+   for(int i = 0;i < mps_p.size();++i){
+
+      output << endl;
+      output << "Tensor on site\t" << i << endl;
+      output << endl;
+      output << i << "\t" << mps_p[i] << endl;
+
+   }
+
+   return output;
+
+}
+
+
 /**
- * act with an SL_PEPS row (basically an MPO) on this MPS, resulting MPS is returned as *this object
- * @param uplo if == 'U' contract with the upper physical index of the MPO, if == 'L', contract with the lower
- * @param option == 'H'orizontal or 'V'ertical
- * @param rc the row/column index
- * @param slp the SL_PEPS
+ * scale the MPS with a constant factor
+ * @param alpha scalingfactor
  */
-void MPS::gemv(char uplo,char option, int rc,const SL_PEPS &slp){
+void MPS::scal(double alpha){
 
-   int DO = slp.gD();
+   int sign;
 
-   int L = this->size();
+   if(alpha > 0)
+      sign = 1;
+   else
+      sign = -1;
 
-   if(option == 'H'){
+   alpha = pow(fabs(alpha),1.0/(double)this->size());
 
-      if(uplo == 'U'){
+   Scal(sign * alpha,(*this)[0]);
 
-         //first site
-         TArray<double,5> tmp;
-
-         enum {i,j,k,l,m,n,o,p,q};
-
-         //dimensions of the new MPS
-         int d_phys = (*this)[0].shape(1);
-         int DL = 1;
-         int DR = (*this)[0].shape(2) * slp(rc,0).shape(3);
-
-         Contract(1.0,slp(rc,0),shape(i,j,k,l),(*this)[0],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         //middle sites
-         for(int col = 1;col < L - 1;++col){
-
-            DL = DR;
-            DR = (*this)[col].shape(2) * slp(rc,col).shape(3);
-
-            Contract(1.0,slp(rc,col),shape(i,j,k,l),(*this)[col],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-            (*this)[col] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         }
-
-         DL = DR;
-         DR = 1;
-
-         Contract(1.0,slp(rc,L - 1),shape(i,j,k,l),(*this)[L - 1],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-      }
-      else{//Lower index contraction
-
-         //first site
-         TArray<double,5> tmp;
-
-         enum {i,j,k,l,m,n,o,p,q};
-
-         //dimensions of the new MPS
-         int d_phys = (*this)[0].shape(1);
-         int DL = 1;
-         int DR = (*this)[0].shape(2) * slp(rc,0).shape(3);
-
-         Contract(1.0,slp(rc,0),shape(i,j,k,l),(*this)[0],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         //middle sites
-         for(int col = 1;col < L - 1;++col){
-
-            DL = DR;
-            DR = (*this)[col].shape(2) * slp(rc,col).shape(3);
-
-            Contract(1.0,slp(rc,col),shape(i,j,k,l),(*this)[col],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-            (*this)[col] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         }
-
-         DL = DR;
-         DR = 1;
-
-         Contract(1.0,slp(rc,L - 1),shape(i,j,k,l),(*this)[L - 1],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-      }
-
-      //vdim is increased
-      D *= DO;
-
-   }
-   else{// VERTICAL
-
-      if(uplo == 'U'){
-
-         //first site
-         TArray<double,5> tmp;
-
-         enum {i,j,k,l,m,n,o,p,q};
-
-         //dimensions of the new MPS
-         int d_phys = (*this)[0].shape(1);
-         int DL = 1;
-         int DR = (*this)[0].shape(2) * slp(0,rc).shape(3);
-
-         Contract(1.0,slp(0,rc),shape(i,j,k,l),(*this)[0],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         //middle sites
-         for(int row = 1;row < L - 1;++row){
-
-            DL = DR;
-            DR = (*this)[row].shape(2) * slp(row,rc).shape(3);
-
-            Contract(1.0,slp(row,rc),shape(i,j,k,l),(*this)[row],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-            (*this)[row] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         }
-
-         DL = DR;
-         DR = 1;
-
-         Contract(1.0,slp(L - 1,rc),shape(i,j,k,l),(*this)[L - 1],shape(m,j,n),0.0,tmp,shape(m,i,k,n,l));
-
-         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-      }
-      else{//Lower index contraction
-
-         //first site
-         TArray<double,5> tmp;
-
-         enum {i,j,k,l,m,n,o,p,q};
-
-         //dimensions of the new MPS
-         int d_phys = (*this)[0].shape(1);
-         int DL = 1;
-         int DR = (*this)[0].shape(2) * slp(0,rc).shape(3);
-
-         Contract(1.0,slp(0,rc),shape(i,j,k,l),(*this)[0],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-         (*this)[0] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         //middle sites
-         for(int row = 1;row < L - 1;++row){
-
-            DL = DR;
-            DR = (*this)[row].shape(2) * slp(row,rc).shape(3);
-
-            Contract(1.0,slp(row,rc),shape(i,j,k,l),(*this)[row],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-            (*this)[row] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-         }
-
-         DL = DR;
-         DR = 1;
-
-         Contract(1.0,slp(L - 1,rc),shape(i,j,k,l),(*this)[L - 1],shape(m,k,n),0.0,tmp,shape(m,i,j,n,l));
-
-         (*this)[L - 1] = tmp.reshape_clear(shape(DL,d_phys,DR));
-
-      }
-
-      //vdim is increased
-      D *= DO;
-
-   }
+   for(int i = 1;i < this->size();++i)
+      Scal(alpha,(*this)[i]);
 
 }

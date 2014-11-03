@@ -164,48 +164,67 @@ Environment::~Environment(){ }
  */
 void Environment::calc(const char dir,bool option){
 
-   if(dir == 'B' || dir == 'A'){
+   //regular
+   if(option){
 
-      b[0].fill('b',peps);
-/*
-      for(int i = 1;i < Ly - 1;++i)
-         this->add_layer('b',i,peps);
-*/
-   }
-/*
-   if(option == 'T' || option == 'A'){
+      if(dir == 'B' || dir == 'A'){
 
-      t[Ly - 2].fill('t',peps);
+         b[0].fill('b',U);
 
-      for(int i = Ly - 3;i >= 0;--i)
+         //for(int i = 1;i < Ly - 1;++i)
+         int i = 1;
+         this->add_layer('b',i,true);
+
+      }
+      /*
+         if(option == 'T' || option == 'A'){
+
+         t[Ly - 2].fill('t',peps);
+
+         for(int i = Ly - 3;i >= 0;--i)
          this->add_layer('t',i,peps);
 
-      flag_t = true;
+         flag_t = true;
 
-   }
+         }
 
-   if(option == 'R' || option == 'A'){
+         if(option == 'R' || option == 'A'){
 
-      r[Lx - 2].fill('r',peps);
+         r[Lx - 2].fill('r',peps);
 
-      for(int i = Lx - 3;i >= 0;--i)
+         for(int i = Lx - 3;i >= 0;--i)
          this->add_layer('r',i,peps);
 
-      flag_r = true;
+         flag_r = true;
 
-   }
+         }
 
-   if(option == 'L' || option == 'A'){
+         if(option == 'L' || option == 'A'){
 
-      l[0].fill('l',peps);
+         l[0].fill('l',peps);
 
-      for(int i = 1;i < Lx - 1;++i)
+         for(int i = 1;i < Lx - 1;++i)
          this->add_layer('l',i,peps);
 
-      flag_l = true;
+         flag_l = true;
+
+         }
+       */
 
    }
-*/
+   else{//inverse
+
+      if(dir == 'B' || dir == 'A'){
+
+         b[Ly - 1].fill('b',I);
+
+         //     for(int i = 1;i < Ly - 1;++i)
+         int i = 1;
+         this->add_layer('b',i,false);
+
+      }
+
+   }
 }
 
 /**
@@ -446,163 +465,137 @@ void Environment::sI(const PEPS<double> &peps,const Walker &walker){
 
 /**
  * construct the (t,b,l or r) environment on row/col 'rc' by adding a the appropriate peps row/col and compressing the boundary MPS
- * @param option 't'op, 'b'ottom, 'l'eft or 'r'ight environment
+ * @param dir 't'op, 'b'ottom, 'l'eft or 'r'ight environment
  * @param rc row or column index
- * @param peps the input PEPS<double> object 
+ * @param option regular or inverse
  */
-void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
-/*
-   if(option == 'b'){
+void Environment::add_layer(const char dir,int rc,bool option){
 
-      if(!flag_b)
-         b[rc].fill_Random();
+   if(dir == 'b'){
 
-      vector< DArray<4> > R(Lx - 1);
+      b[rc].fill_Random();
+
+      vector< DArray<3> > R(Lx - 1);
 
       //first construct rightmost operator
-      DArray<7> tmp7;
-      Contract(1.0,b[rc - 1][Lx - 1],shape(1),peps(rc,Lx - 1),shape(3),0.0,tmp7);
+      DArray<5> tmp5;
+      Contract(1.0,b[rc - 1][Lx - 1],shape(1),U(rc,Lx - 1),shape(2),0.0,tmp5);
 
-      DArray<8> tmp8;
-      Contract(1.0,tmp7,shape(1,5),peps(rc,Lx - 1),shape(3,2),0.0,tmp8);
+      DArray<6> tmp6;
+      Contract(1.0,tmp5,shape(3),b[rc][Lx - 1],shape(1),0.0,tmp6);
 
-      DArray<8> tmp8bis;
-      Contract(1.0,tmp8,shape(3,6),b[rc][Lx - 1],shape(1,2),0.0,tmp8bis);
-
-      R[Lx - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(6)));
+      R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
       //now move from right to left to construct the rest
       for(int i = Lx - 2;i > 0;--i){
 
-         DArray<6> tmp6;
-         Contract(1.0,b[rc - 1][i],shape(3),R[i],shape(0),0.0,tmp6);
+         DArray<4> tmp4;
+         Contract(1.0,b[rc - 1][i],shape(2),R[i],shape(0),0.0,tmp4);
 
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(1,3),peps(rc,i),shape(3,4),0.0,tmp7);
+         DArray<4> tmp4bis;
+         Contract(1.0,tmp4,shape(1,2),U(rc,i),shape(2,3),0.0,tmp4bis);
 
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(1,2,6),peps(rc,i),shape(3,4,2),0.0,tmp6);
-
-         Contract(1.0,tmp6,shape(3,5,1),b[rc][i],shape(1,2,3),0.0,R[i - 1]);
+         Contract(1.0,tmp4bis,shape(3,1),b[rc][i],shape(1,2),0.0,R[i - 1]);
 
       }
+      
       int iter = 0;
 
       while(iter < comp_sweeps){
 
          //now start sweeping to get the compressed boundary MPS
-         DArray<6> tmp6;
-         Contract(1.0,b[rc - 1][0],shape(3),R[0],shape(0),0.0,tmp6);
+         DArray<4> tmp4;
+         Contract(1.0,b[rc - 1][0],shape(2),R[0],shape(0),0.0,tmp4);
 
-         tmp7.clear();
-         Contract(1.0,peps(rc,0),shape(3,4),tmp6,shape(2,4),0.0,tmp7);
+         DArray<4> tmp4bis;
+         Contract(1.0,U(rc,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
 
-         tmp6.clear();
-         Contract(1.0,peps(rc,0),shape(2,3,4),tmp7,shape(2,4,5),0.0,tmp6);
-
-         b[rc][0] = tmp6.reshape_clear(shape(1,D,D,tmp6.shape(5)));
+         b[rc][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
 
          //QR
          DArray<2> tmp2;
          Geqrf(b[rc][0],tmp2);
 
          //construct new left operator
-         tmp7.clear();
-         Contract(1.0,b[rc-1][0],shape(1),peps(rc,0),shape(3),0.0,tmp7);
+         tmp5.clear();
+         Contract(1.0,b[rc-1][0],shape(1),U(rc,0),shape(2),0.0,tmp5);
 
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,5),peps(rc,0),shape(3,2),0.0,tmp8);
+         tmp6.clear();
+         Contract(1.0,tmp5,shape(3),b[rc][0],shape(1),0.0,tmp6);
 
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(3,6),b[rc][0],shape(1,2),0.0,tmp8bis);
-
-         R[0] = tmp8bis.reshape_clear(shape(tmp8bis.shape(1),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(7)));
+         R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(3),tmp6.shape(5)));
 
          //now for the rest of the rightgoing sweep.
          for(int i = 1;i < Lx-1;++i){
 
-            tmp6.clear();
-            Contract(1.0,R[i - 1],shape(0),b[rc - 1][i],shape(0),0.0,tmp6);
+            tmp4.clear();
+            Contract(1.0,R[i - 1],shape(0),b[rc - 1][i],shape(0),0.0,tmp4);
 
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(0,3),peps(rc,i),shape(0,3),0.0,tmp7);
+            tmp4bis.clear();
+            Contract(1.0,tmp4,shape(0,2),U(rc,i),shape(0,2),0.0,tmp4bis);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(0,2,5),peps(rc,i),shape(0,3,2),0.0,tmp6);
+            Permute(tmp4bis,shape(0,2,1,3),tmp4);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
-
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,R[i],0.0,b[rc][i]);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc][i]);
 
             //QR
             tmp2.clear();
             Geqrf(b[rc][i],tmp2);
 
             //construct new left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp6bis,b[rc][i],0.0,R[i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc][i],0.0,R[i]);
 
          }
 
          //rightmost site
-         tmp6.clear();
-         Contract(1.0,R[Lx - 2],shape(0),b[rc - 1][Lx - 1],shape(0),0.0,tmp6);
+         tmp4.clear();
+         Contract(1.0,R[Lx - 2],shape(0),b[rc - 1][Lx - 1],shape(0),0.0,tmp4);
 
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(0,3),peps(rc,Lx - 1),shape(0,3),0.0,tmp7);
+         tmp4bis.clear();
+         Contract(1.0,tmp4,shape(0,2),U(rc,Lx - 1),shape(0,2),0.0,tmp4bis);
 
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(0,2,5),peps(rc,Lx - 1),shape(0,3,2),0.0,tmp6);
-
-         b[rc][Lx - 1] = tmp6.reshape_clear(shape(tmp6.shape(0),D,D,1));
+         b[rc][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
 
          //LQ
          tmp2.clear();
          Gelqf(tmp2,b[rc][Lx - 1]);
 
          //construct new right operator
-         tmp7.clear();
-         Contract(1.0,b[rc - 1][Lx - 1],shape(1),peps(rc,Lx - 1),shape(3),0.0,tmp7);
+         tmp5.clear();
+         Contract(1.0,b[rc - 1][Lx - 1],shape(1),U(rc,Lx - 1),shape(2),0.0,tmp5);
 
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,5),peps(rc,Lx - 1),shape(3,2),0.0,tmp8);
+         tmp6.clear();
+         Contract(1.0,tmp5,shape(3),b[rc][Lx - 1],shape(1),0.0,tmp6);
 
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(3,6),b[rc][Lx - 1],shape(1,2),0.0,tmp8bis);
-
-         R[Lx - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(6)));
+         R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
          //back to the beginning with a leftgoing sweep
          for(int i = Lx-2;i > 0;--i){
 
-            tmp6.clear();
-            Contract(1.0,b[rc - 1][i],shape(3),R[i],shape(0),0.0,tmp6);
+            tmp4.clear();
+            Contract(1.0,b[rc - 1][i],shape(2),R[i],shape(0),0.0,tmp4);
 
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(1,3),peps(rc,i),shape(3,4),0.0,tmp7);
+            tmp4bis.clear();
+            Contract(1.0,tmp4,shape(1,2),U(rc,i),shape(2,3),0.0,tmp4bis);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,6),peps(rc,i),shape(3,4,2),0.0,tmp6);
+            Permute(tmp4bis,shape(0,2,3,1),tmp4);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp6bis,0.0,b[rc][i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,b[rc][i]);
 
             //LQ
             tmp2.clear();
             Gelqf(tmp2,b[rc][i]);
 
             //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,b[rc][i],0.0,R[i - 1]);
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,b[rc][i],0.0,R[i - 1]);
 
          }
 
          //multiply the last L matrix with the first matrix:
-         DArray<4> tmp4;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc][0],tmp2,0.0,tmp4);
+         DArray<3> tmp3;
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc][0],tmp2,0.0,tmp3);
 
-         b[rc][0] = std::move(tmp4);
+         b[rc][0] = std::move(tmp3);
 
          ++iter;
 
@@ -618,6 +611,7 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
       b[rc].scal(nrm);
 
    }
+   /*
    else if(option == 't'){
 
       if(!flag_t)
@@ -1119,5 +1113,5 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
       l[rc].scal(nrm);
 
    }
-*/
+   */
 }

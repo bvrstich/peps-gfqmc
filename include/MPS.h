@@ -18,6 +18,8 @@ using namespace btas;
  */
 class MPS : public vector< TArray<double,3> > {
 
+   friend ostream &operator<<(ostream &output,const MPS &mps_p);
+
    public:
 
       MPS();
@@ -42,17 +44,13 @@ class MPS : public vector< TArray<double,3> > {
 
       void canonicalize(const BTAS_SIDE &,bool);
 
-      void cut_edges();
-
-      void guess(const BTAS_SIDE &,int ,const MPS &mps);
-
-      void compress(int ,const MPS &mps,int);
-
       double dot(const MPS &bra) const;
 
       void fill(char,const SL_PEPS &);
 
       void gemv(char,char,int,const SL_PEPS &);
+
+      void scal(double);
 
    private:
 

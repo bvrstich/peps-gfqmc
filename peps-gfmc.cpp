@@ -28,7 +28,15 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
+   Walker walker;
+
+   PEPS<double> peps;
+   peps.initialize_jastrow(0.74);
+
    Environment env(D,D_aux,1);
+
+   env.sU(peps,walker);
+   env.calc('B',true);
 
 /*
    double dtau = 0.01;
