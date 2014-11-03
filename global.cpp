@@ -27,6 +27,8 @@ namespace global{
 
    int omp_num_threads;
 
+   std::vector< Environment > env;
+
    Random RN;
 
    /**

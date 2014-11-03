@@ -37,6 +37,9 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
    D_aux = D_aux_in;
    comp_sweeps = comp_sweeps_in;
 
+   U = SL_PEPS(D);
+   I = SL_PEPS(D);
+
    //allocate the memory
    
    //bottom
@@ -149,16 +152,17 @@ Environment::Environment(const Environment &env_copy){
 Environment::~Environment(){ }
 
 /**
- * construct the enviroment mps's for the input PEPS
- * @param option if 'L' construct full left environment
+ * construct the enviroment mps's for the input PEPS and Walker: make sure the correct SL_PEPS object is filled first
+ * @param dir    if 'L' construct full left environment
  *               if 'R' construct full right environment
  *               if 'T' construct full top environment
  *               if 'B' construct full bottom environment
  *               if 'A' construct all environments
+ * @param option if true, regular walker, if false inverse walker
  * @param peps input PEPS<double>
  * @param D_aux dimension to which environment will be compressed
  */
-void Environment::calc(const char option,const PEPS<double> &peps,const Walker &){
+void Environment::calc(const char dir,bool option){
 /*
    if(option == 'B' || option == 'A'){
 
@@ -399,6 +403,28 @@ const vector< MPS > &Environment::gl() const {
 const vector< MPS > &Environment::gr() const {
 
    return r;
+
+}
+
+/**
+ * constract the physical indices of the PEPS with the walker, put it in U object
+ * @param peps the PEPS<double> object
+ * @param Walker the regular walker
+ */
+void Environment::fill_U(const PEPS<double> &peps,const Walker &walker){
+
+   U.fill(true,peps,walker);
+
+}
+
+/**
+ * constract the physical indices of the PEPS with the walker, put it in U or I
+ * @param peps the PEPS<double> object
+ * @param Walker the regular walker
+ */
+void Environment::fill_I(const PEPS<double> &peps,const Walker &walker){
+
+   I.fill(false,peps,walker);
 
 }
 

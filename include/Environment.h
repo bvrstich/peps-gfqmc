@@ -59,7 +59,10 @@ class Environment {
       void sD(int);
       void sD_aux(int);
 
-      void calc(char,const PEPS< double > &,const Walker &walker);
+      void fill_U(const PEPS<double> &,const Walker &);
+      void fill_I(const PEPS<double> &,const Walker &);
+
+      void calc(const char,bool);
 
       void test(bool);
 

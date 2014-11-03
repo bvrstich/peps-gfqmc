@@ -39,13 +39,11 @@ class SL_PEPS : public vector< TArray<double,4> > {
       int gD() const;
 
       //fill by just overlap
-      void fill(char,bool,const PEPS< double > &,const Walker &);
+      void fill(bool,const PEPS< double > &,const Walker &);
 
       const TArray<double,4> &operator()(int,int) const;
 
       TArray<double,4> &operator()(int,int);
-
-      void reshape_horizontal();
 
    private:
 
