@@ -27,11 +27,11 @@ Environment::Environment(){ }
  */
 Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
 
-   t.resize(Ly - 1);
-   b.resize(Ly - 1);
+   t.resize( 2*(Ly - 1) );
+   b.resize( 2*(Ly - 1) );
 
-   r.resize(Lx - 1);
-   l.resize(Lx - 1);
+   r.resize( 2*(Lx - 1) );
+   l.resize( 2*(Lx - 1) );
 
    D = D_in;
    D_aux = D_aux_in;
@@ -47,11 +47,16 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
       if(tmp < D_aux){
 
          b[i] = MPS(Lx,D,tmp);
+         b[i + Ly - 1] = MPS(Lx,D,tmp);
          tmp *= D;
 
       }
-      else
+      else{
+
          b[i] = MPS(Lx,D,D_aux);
+         b[i + Ly-1] = MPS(Lx,D,D_aux);
+
+      }
 
    }
    
@@ -63,11 +68,16 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
       if(tmp < D_aux){
 
          t[i] = MPS(Lx,D,tmp);
+         t[i + Ly - 1] = MPS(Lx,D,tmp);
          tmp *= D;
 
       }
-      else
+      else{
+
          t[i] = MPS(Lx,D,D_aux);
+         t[i + Ly-1] = MPS(Lx,D,D_aux);
+
+      }
 
    }
 
@@ -79,11 +89,16 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
       if(tmp < D_aux){
 
          l[i] = MPS(Ly,D,tmp);
+         l[i + Lx - 1] = MPS(Ly,D,tmp);
          tmp *= D;
 
       }
-      else
+      else{
+
          l[i] = MPS(Ly,D,D_aux);
+         l[i + Lx - 1] = MPS(Ly,D,D_aux);
+
+      }
 
    }
    
@@ -95,11 +110,16 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
       if(tmp < D_aux){
 
          r[i] = MPS(Ly,D,tmp);
+         r[i + Lx - 1] = MPS(Ly,D,tmp);
          tmp *= D;
 
       }
-      else
+      else{
+
          r[i] = MPS(Ly,D,D_aux);
+         r[i + Lx - 1] = MPS(Ly,D,D_aux);
+
+      }
 
    }
 
@@ -188,106 +208,115 @@ void Environment::calc(const char option,const PEPS<double> &peps,const Walker &
 
 /**
  * test if the enviroment is correctly contracted
+ * @param option if true, regular walker, if false inverse walker
  */
-void Environment::test(char option){
+void Environment::test(bool option){
 
    cout << endl;
    cout << "FROM BOTTOM TO TOP" << endl;
    cout << endl;
    for(int i = 0;i < Ly - 1;++i)
-      cout << i << "\t" << b[i].dot(t[i]) << endl;
+      cout << i << "\t" << b[i + option * (Ly - 1)].dot(t[i + option * (Ly - 1) ]) << endl;
 
    cout << endl;
    cout << "FROM LEFT TO RIGHT" << endl;
    cout << endl;
    for(int i = 0;i < Lx - 1;++i)
-      cout << i << "\t" << l[i].dot(r[i]) << endl;
+      cout << i << "\t" << l[i + option * (Lx - 1)].dot(r[i + option * (Lx - 1)]) << endl;
    cout << endl;
 }
 
 /**
  * const version
+ * @param option if true, regular walker, if false inverse walker
  * @param col the column index
- * @return the right boundary 'MPO' environment on column col
+ * @return the right boundary 'MPS' environment on column col
  */
-const MPS &Environment::gr(int col) const {
+const MPS &Environment::gr(bool option,int col) const {
 
-   return r[col];
+   return r[col + option * (Lx - 1)];
 
 }
 
 /**
  * @param col the column index: access version
- * @return the right boundary 'MPO' environment on column col
+ * @param option if true, regular walker, if false inverse walker
+ * @return the right boundary 'MPS' environment on column col
  */
-MPS &Environment::gr(int col) {
+MPS &Environment::gr(bool option,int col) {
 
-   return r[col];
+   return r[col + option * (Lx - 1)];
 
 }
 
 /**
  * const version
+ * @param option if true, regular walker, if false inverse walker
  * @param col the column index
- * @return the left boundary 'MPO' environment on column col
+ * @return the left boundary 'MPS' environment on column col
  */
-const MPS &Environment::gl(int col) const {
+const MPS &Environment::gl(bool option,int col) const {
 
-   return l[col];
+   return l[col + option * (Lx - 1)];
 
 }
 
 /**
+ * @param option if true, regular walker, if false inverse walker
  * @param col the column index: access version
- * @return the left boundary 'MPO' environment on column col
+ * @return the left boundary 'MPS' environment on column col
  */
-MPS &Environment::gl(int col) {
+MPS &Environment::gl(bool option,int col) {
 
-   return l[col];
+   return l[col + option * (Lx - 1)];
 
 }
 
 /**
  * const version
+ * @param option if true, regular walker, if false inverse walker
  * @param row the row index
- * @return the top boundary 'MPO' environment on row 'row'
+ * @return the top boundary 'MPS' environment on row 'row'
  */
-const MPS &Environment::gt(int row) const {
+const MPS &Environment::gt(bool option,int row) const {
 
-   return t[row];
+   return t[row + option * (Ly - 1)];
 
 }
 
 /**
  * access version
+ * @param option if true, regular walker, if false inverse walker
  * @param row the row index
- * @return the top boundary 'MPO' environment on row 'row'
+ * @return the top boundary 'MPS' environment on row 'row'
  */
-MPS &Environment::gt(int row) {
+MPS &Environment::gt(bool option,int row) {
 
-   return t[row];
+   return t[row + option * (Ly - 1)];
 
 }
 
 /**
  * const version
+ * @param option if true, regular walker, if false inverse walker
  * @param row the row index
- * @return the bottom boundary 'MPO' environment on row 'row'
+ * @return the bottom boundary 'MPS' environment on row 'row'
  */
-const MPS &Environment::gb(int row) const {
+const MPS &Environment::gb(bool option,int row) const {
 
-   return b[row];
+   return b[row + option * (Ly - 1)];
 
 }
 
 /**
  * access version
+ * @param option if true, regular walker, if false inverse walker
  * @param row the row index
- * @return the bottom boundary 'MPO' environment on row 'row'
+ * @return the bottom boundary 'MPS' environment on row 'row'
  */
-MPS &Environment::gb(int row) {
+MPS &Environment::gb(bool option,int row) {
 
-   return b[row];
+   return b[row + option * (Ly - 1)];
 
 }
 
@@ -338,7 +367,7 @@ void Environment::sD_aux(int D_aux_in) {
 }
 
 /**
- * @return the full bottom boundary 'MPO'
+ * @return the full bottom boundary 'MPS'
  */
 const vector< MPS > &Environment::gb() const {
 
@@ -347,7 +376,7 @@ const vector< MPS > &Environment::gb() const {
 }
 
 /**
- * @return the full top boundary 'MPO'
+ * @return the full top boundary 'MPS'
  */
 const vector< MPS > &Environment::gt() const {
 
@@ -356,7 +385,7 @@ const vector< MPS > &Environment::gt() const {
 }
 
 /**
- * @return the full left boundary 'MPO'
+ * @return the full left boundary 'MPS'
  */
 const vector< MPS > &Environment::gl() const {
 
@@ -365,7 +394,7 @@ const vector< MPS > &Environment::gl() const {
 }
 
 /**
- * @return the full right boundary 'MPO'
+ * @return the full right boundary 'MPS'
  */
 const vector< MPS > &Environment::gr() const {
 
@@ -374,7 +403,7 @@ const vector< MPS > &Environment::gr() const {
 }
 
 /**
- * construct the (t,b,l or r) environment on row/col 'rc' by adding a the appropriate peps row/col and compressing the boundary MPO
+ * construct the (t,b,l or r) environment on row/col 'rc' by adding a the appropriate peps row/col and compressing the boundary MPS
  * @param option 't'op, 'b'ottom, 'l'eft or 'r'ight environment
  * @param rc row or column index
  * @param peps the input PEPS<double> object 
@@ -419,7 +448,7 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPO
+         //now start sweeping to get the compressed boundary MPS
          DArray<6> tmp6;
          Contract(1.0,b[rc - 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 
@@ -586,7 +615,7 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPO
+         //now start sweeping to get the compressed boundary MPS
          DArray<6> tmp6;
          Contract(1.0,t[rc + 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 
@@ -753,7 +782,7 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPO
+         //now start sweeping to get the compressed boundary MPS
          DArray<6> tmp6;
          Contract(1.0,r[rc + 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 
@@ -920,7 +949,7 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
 
       while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPO
+         //now start sweeping to get the compressed boundary MPS
          DArray<6> tmp6;
          Contract(1.0,l[rc - 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 

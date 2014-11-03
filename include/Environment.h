@@ -34,17 +34,17 @@ class Environment {
       //destructor
       virtual ~Environment();
 
-      const MPS &gl(int) const;
-      MPS &gl(int);
+      const MPS &gl(bool,int) const;
+      MPS &gl(bool,int);
 
-      const MPS &gr(int) const;
-      MPS &gr(int);
+      const MPS &gr(bool,int) const;
+      MPS &gr(bool,int);
 
-      const MPS &gt(int) const;
-      MPS &gt(int);
+      const MPS &gt(bool,int) const;
+      MPS &gt(bool,int);
 
-      const MPS &gb(int) const;
-      MPS &gb(int);
+      const MPS &gb(bool,int) const;
+      MPS &gb(bool,int);
 
       const vector< MPS > &gl() const;
       const vector< MPS > &gr() const;
@@ -61,7 +61,7 @@ class Environment {
 
       void calc(char,const PEPS< double > &,const Walker &walker);
 
-      void test(char);
+      void test(bool);
 
       void add_layer(const char,int,const PEPS<double> &);
 
