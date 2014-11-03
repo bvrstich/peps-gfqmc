@@ -138,7 +138,7 @@ Environment::~Environment(){ }
  * @param peps input PEPS<double>
  * @param D_aux dimension to which environment will be compressed
  */
-void Environment::calc(const char option,const PEPS<double> &peps){
+void Environment::calc(const char option,const PEPS<double> &peps,const Walker &){
 /*
    if(option == 'B' || option == 'A'){
 
@@ -189,7 +189,7 @@ void Environment::calc(const char option,const PEPS<double> &peps){
 /**
  * test if the enviroment is correctly contracted
  */
-void Environment::test(){
+void Environment::test(char option){
 
    cout << endl;
    cout << "FROM BOTTOM TO TOP" << endl;
@@ -380,7 +380,7 @@ const vector< MPS > &Environment::gr() const {
  * @param peps the input PEPS<double> object 
  */
 void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
-
+/*
    if(option == 'b'){
 
       if(!flag_b)
@@ -1048,5 +1048,5 @@ void Environment::add_layer(const char option,int rc,const PEPS<double> &peps){
       l[rc].scal(nrm);
 
    }
-
+*/
 }

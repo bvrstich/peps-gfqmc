@@ -63,6 +63,8 @@ class Environment {
 
       void test(char);
 
+      void add_layer(const char,int,const PEPS<double> &);
+
    private:
 
       //!stores an array environment MPS's for l(eft) , r(ight), t(op) and b(ottom)
