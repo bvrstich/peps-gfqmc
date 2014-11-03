@@ -28,7 +28,7 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
-   Environment env;
+   Environment env(D,D_aux,1);
 
 /*
    double dtau = 0.01;

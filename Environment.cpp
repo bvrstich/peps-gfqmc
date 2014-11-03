@@ -163,18 +163,16 @@ Environment::~Environment(){ }
  * @param D_aux dimension to which environment will be compressed
  */
 void Environment::calc(const char dir,bool option){
-/*
-   if(option == 'B' || option == 'A'){
+
+   if(dir == 'B' || dir == 'A'){
 
       b[0].fill('b',peps);
-
+/*
       for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,peps);
-
-      flag_b = true;
-
+*/
    }
-
+/*
    if(option == 'T' || option == 'A'){
 
       t[Ly - 2].fill('t',peps);
@@ -407,11 +405,29 @@ const vector< MPS > &Environment::gr() const {
 }
 
 /**
+ * @return the overlap between the regular walker and the PEPS
+ */
+const SL_PEPS &Environment::gU() const {
+
+   return U;
+
+}
+
+/**
+ * @return the overlap between the regular walker and the PEPS
+ */
+const SL_PEPS &Environment::gI() const {
+
+   return I;
+
+}
+
+/**
  * constract the physical indices of the PEPS with the walker, put it in U object
  * @param peps the PEPS<double> object
  * @param Walker the regular walker
  */
-void Environment::fill_U(const PEPS<double> &peps,const Walker &walker){
+void Environment::sU(const PEPS<double> &peps,const Walker &walker){
 
    U.fill(true,peps,walker);
 
@@ -422,7 +438,7 @@ void Environment::fill_U(const PEPS<double> &peps,const Walker &walker){
  * @param peps the PEPS<double> object
  * @param Walker the regular walker
  */
-void Environment::fill_I(const PEPS<double> &peps,const Walker &walker){
+void Environment::sI(const PEPS<double> &peps,const Walker &walker){
 
    I.fill(false,peps,walker);
 
