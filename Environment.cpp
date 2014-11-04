@@ -168,46 +168,36 @@ Environment::~Environment(){ }
  */
 void Environment::calc(const char dir,bool inverse){
 
-   if(dir == 'B' || dir == 'A'){
+   if(dir == 'H'){//only bottom and top
 
+      //bottom 
       b[inverse * (Ly - 1)].fill('b',U[inverse]);
 
       for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,inverse);
 
-   }
-
-   if(dir == 'T' || dir == 'A'){
-
+      //top
       t[Ly - 2 + inverse * (Ly - 1)].fill('t',U[inverse]);
 
       for(int i = Ly - 3;i >= 0;--i)
          this->add_layer('t',i,inverse);
 
    }
-   /*
-      if(option == 'R' || option == 'A'){
+   else{//Vertical
 
-      r[Lx - 2].fill('r',peps);
+      //right
+      r[Lx - 2 + inverse * (Lx - 1)].fill('r',U[inverse]);
 
       for(int i = Lx - 3;i >= 0;--i)
-      this->add_layer('r',i,peps);
+         this->add_layer('r',i,inverse);
 
-      flag_r = true;
-
-      }
-
-      if(option == 'L' || option == 'A'){
-
-      l[0].fill('l',peps);
+      //and left
+      l[inverse * (Lx - 1)].fill('l',U[inverse]);
 
       for(int i = 1;i < Lx - 1;++i)
-      this->add_layer('l',i,peps);
+         this->add_layer('l',i,inverse);
 
-      flag_l = true;
-
-      }
-    */
+   }
 
 }
 
@@ -516,7 +506,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
             //QR
             tmp2.clear();
-            Geqrf(b[rc][i],tmp2);
+            Geqrf(b[rc + inverse * (Ly - 1)][i],tmp2);
 
             //construct new left operator
             Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
@@ -534,7 +524,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
          //LQ
          tmp2.clear();
-         Gelqf(tmp2,b[rc][Lx - 1]);
+         Gelqf(tmp2,b[rc + inverse * (Ly - 1)][Lx - 1]);
 
          //construct new right operator
          tmp5.clear();
