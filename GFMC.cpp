@@ -47,10 +47,10 @@ void GFMC::SetupWalkers(){
    walker.resize(Nw);
 
    walker[0] = Walker(0);
-   walker[0].calc_EL(peps);
+   walker[0].calc_EL();
 
    walker[1] = Walker(1);
-   walker[1].calc_EL(peps);
+   walker[1].calc_EL();
 
    for(int i = 2;i < Nw;++i){
 
@@ -170,7 +170,7 @@ double GFMC::propagate(){
       walker[i].multWeight(nrm);
 
       //calculate new properties
-      walker[i].calc_EL(peps);
+      walker[i].calc_EL();
 
       sum += walker[i].gWeight();
 

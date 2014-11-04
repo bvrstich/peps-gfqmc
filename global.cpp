@@ -54,6 +54,11 @@ namespace global{
       omp_num_threads = 1;
 #endif
 
+      env.resize(omp_num_threads);
+
+      for(int thr = 0;thr < omp_num_threads;++thr)
+         env[thr] = Environment(DT,D_aux,1);
+
       peps.resize(Lx*Ly);
       peps.initialize_jastrow(0.74);
 

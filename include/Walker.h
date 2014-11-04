@@ -15,8 +15,6 @@ using std::vector;
 
 using namespace btas;
 
-#include "PEPS.h"
-
 /**
  * class definition of Walker, made to describe the peps walkers. An array of L*L booleans vector. Each site represents a spin up (0) or spin down (1)
  */
@@ -48,7 +46,7 @@ class Walker : public vector< bool > {
 
       double pot_en() const;
 
-      void calc_EL(const PEPS<double> &);
+      void calc_EL();
 
   private:
 

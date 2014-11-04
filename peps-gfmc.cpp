@@ -29,18 +29,7 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L);
 
    Walker walker;
-
-   PEPS<double> peps;
-   peps.initialize_jastrow(0.74);
-
-   Environment env(D,D_aux,1);
-
-   env.sU(true,peps,walker);
-
-   env.calc('H',true);
-   env.calc('V',true);
-
-   env.test(true);
+   walker.calc_EL();
 
 /*
    double dtau = 0.01;
