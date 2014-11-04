@@ -37,7 +37,9 @@ int main(int argc,char *argv[]){
 
    env.sU(false,peps,walker);
 
+   env.calc('H',false);
    env.calc('V',false);
+
    env.test(false);
 
 /*
