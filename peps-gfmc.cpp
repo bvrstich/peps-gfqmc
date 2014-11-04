@@ -35,10 +35,10 @@ int main(int argc,char *argv[]){
 
    Environment env(D,D_aux,1);
 
-   env.sU(true,peps,walker);
+   env.sU(false,peps,walker);
 
-   env.calc('H',true);
-   env.test(true);
+   env.calc('V',false);
+   env.test(false);
 
 /*
    double dtau = 0.01;

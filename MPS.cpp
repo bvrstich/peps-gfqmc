@@ -230,7 +230,7 @@ void MPS::normalize(){
 
 /**
  * fill a MPS object, by creating a single layer from contracting a peps with a physical vector
- * @param row index of row
+ * @param option 't'op, 'b'ottom, 'l'eft or 'r'ight
  * @param slp single layer contracted peps
  */
 void MPS::fill(char option,const SL_PEPS &slp) {
@@ -273,12 +273,13 @@ void MPS::fill(char option,const SL_PEPS &slp) {
    }
    else{//right
 
-      //just a deep copy of slp right column
+      //just a permutation of slp right column
       for(int row = 0;row < Ly;++row){
 
-         int dim = slp(row,Lx-1).size();
+         DArray<4> tmp4;
 
-         blas::copy(dim,slp(row,Lx-1).data(),1,(*this)[row].data(),1);
+         Permute(slp(row,Lx-1),shape(2,0,3,1),tmp4);
+         cout << tmp4 << endl;
 
       }
 

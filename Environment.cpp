@@ -187,7 +187,7 @@ void Environment::calc(const char dir,bool inverse){
 
       //right
       r[Lx - 2 + inverse * (Lx - 1)].fill('r',U[inverse]);
-
+/*
       for(int i = Lx - 3;i >= 0;--i)
          this->add_layer('r',i,inverse);
 
@@ -196,7 +196,7 @@ void Environment::calc(const char dir,bool inverse){
 
       for(int i = 1;i < Lx - 1;++i)
          this->add_layer('l',i,inverse);
-
+*/
    }
 
 }
@@ -219,6 +219,7 @@ void Environment::test(bool inverse){
    for(int i = 0;i < Lx - 1;++i)
       cout << i << "\t" << l[i + inverse * (Lx - 1)].dot(r[i + inverse * (Lx - 1)]) << endl;
    cout << endl;
+
 }
 
 /**
