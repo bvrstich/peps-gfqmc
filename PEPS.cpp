@@ -148,127 +148,125 @@ void PEPS<T>::sD(int D_in) {
 template<>
 void PEPS<double>::initialize_jastrow(double f) {
 
-   enum {i,j,k,l,m,n,o,p,q,r,s};
-
    D = 2;
 
    //bottom row, first site
-   (*this)[0].resize(1,D,d,1,D);
+   (*this)[0].resize(d,1,D,1,D);
    (*this)[0] = 0.0;
 
    (*this)[0](0,0,0,0,0) = 1.0;
-   (*this)[0](0,1,1,0,1) = 1.0;
+   (*this)[0](1,0,1,0,1) = 1.0;
 
    //bottom row, middle sites
    for(int col = 1;col < Lx - 1;++col){
 
-      (*this)[col].resize(D,D,d,1,D);
+      (*this)[col].resize(d,D,D,1,D);
       (*this)[col] = 0.0;
 
       (*this)[col](0,0,0,0,0) = f;
-      (*this)[col](1,0,0,0,0) = 1.0;
-      (*this)[col](0,1,1,0,1) = 1.0;
+      (*this)[col](0,1,0,0,0) = 1.0;
+      (*this)[col](1,0,1,0,1) = 1.0;
       (*this)[col](1,1,1,0,1) = f;
 
    }
 
    //bottom row, last site
-   (*this)[Lx-1].resize(D,D,d,1,1);
+   (*this)[Lx-1].resize(d,D,D,1,1);
    (*this)[Lx-1] = 0.0;
 
    (*this)[Lx-1](0,0,0,0,0) = f;
-   (*this)[Lx-1](1,0,0,0,0) = 1.0;
+   (*this)[Lx-1](0,1,0,0,0) = 1.0;
 
-   (*this)[Lx-1](0,1,1,0,0) = 1.0;
+   (*this)[Lx-1](1,0,1,0,0) = 1.0;
    (*this)[Lx-1](1,1,1,0,0) = f;
 
    //middle sites
    for(int row = 1;row < Ly - 1;++row){
 
       //leftmost middle site: col == 0
-      (*this)[row*Lx].resize(1,D,d,D,D);
+      (*this)[row*Lx].resize(d,1,D,D,D);
       (*this)[row*Lx] = 0.0;
 
       (*this)[row*Lx](0,0,0,0,0) = f;
       (*this)[row*Lx](0,0,0,1,0) = 1.0;
-      (*this)[row*Lx](0,1,1,0,1) = 1.0;
-      (*this)[row*Lx](0,1,1,1,1) = f;
+      (*this)[row*Lx](1,0,1,0,1) = 1.0;
+      (*this)[row*Lx](1,0,1,1,1) = f;
 
       //middle sites on row 'row'
       for(int col = 1;col < Lx - 1;++col){
 
-         (*this)[row*Lx + col].resize(D,D,d,D,D);
+         (*this)[row*Lx + col].resize(d,D,D,D,D);
          (*this)[row*Lx + col] = 0.0;
 
          (*this)[row*Lx + col](0,0,0,0,0) = f*f;
          (*this)[row*Lx + col](0,0,0,1,0) = f;
-         (*this)[row*Lx + col](1,0,0,0,0) = f;
-         (*this)[row*Lx + col](1,0,0,1,0) = 1.0;
+         (*this)[row*Lx + col](0,1,0,0,0) = f;
+         (*this)[row*Lx + col](0,1,0,1,0) = 1.0;
 
-         (*this)[row*Lx + col](0,1,1,0,1) = 1.0;
-         (*this)[row*Lx + col](0,1,1,1,1) = f;
+         (*this)[row*Lx + col](1,0,1,0,1) = 1.0;
+         (*this)[row*Lx + col](1,0,1,1,1) = f;
          (*this)[row*Lx + col](1,1,1,0,1) = f;
          (*this)[row*Lx + col](1,1,1,1,1) = f*f;
 
       }
 
       //rightmost site on row 'row'
-      (*this)[row*Lx + Lx - 1].resize(D,D,d,D,1);
+      (*this)[row*Lx + Lx - 1].resize(d,D,D,D,1);
       (*this)[row*Lx + Lx - 1] = 0.0;
 
       (*this)[row*Lx + Lx - 1](0,0,0,0,0) = f*f;
       (*this)[row*Lx + Lx - 1](0,0,0,1,0) = f;
-      (*this)[row*Lx + Lx - 1](1,0,0,0,0) = f;
-      (*this)[row*Lx + Lx - 1](1,0,0,1,0) = 1.0;
+      (*this)[row*Lx + Lx - 1](0,1,0,0,0) = f;
+      (*this)[row*Lx + Lx - 1](0,1,0,1,0) = 1.0;
 
-      (*this)[row*Lx + Lx - 1](0,1,1,0,0) = 1.0;
+      (*this)[row*Lx + Lx - 1](1,0,1,0,0) = 1.0;
       (*this)[row*Lx + Lx - 1](1,1,1,0,0) = f;
-      (*this)[row*Lx + Lx - 1](0,1,1,1,0) = f;
+      (*this)[row*Lx + Lx - 1](1,0,1,1,0) = f;
       (*this)[row*Lx + Lx - 1](1,1,1,1,0) = f*f;
 
    }
 
    //top row
    //leftmost site
-   (*this)[(Ly - 1)*Lx].resize(1,1,d,D,D);
+   (*this)[(Ly - 1)*Lx].resize(d,1,1,D,D);
    (*this)[(Ly - 1)*Lx] = 0.0;
 
    (*this)[(Ly - 1)*Lx](0,0,0,0,0) = f;
    (*this)[(Ly - 1)*Lx](0,0,0,1,0) = 1.0;
-   (*this)[(Ly - 1)*Lx](0,0,1,0,1) = 1.0;
-   (*this)[(Ly - 1)*Lx](0,0,1,1,1) = f;
+   (*this)[(Ly - 1)*Lx](1,0,0,0,1) = 1.0;
+   (*this)[(Ly - 1)*Lx](1,0,0,1,1) = f;
 
    //top row, middle sites
    for(int col = 1;col < Lx - 1;++col){
 
-      (*this)[(Ly - 1)*Lx + col].resize(D,1,d,D,D);
+      (*this)[(Ly - 1)*Lx + col].resize(d,D,1,D,D);
       (*this)[(Ly - 1)*Lx + col] = 0.0;
 
       (*this)[(Ly - 1)*Lx + col](0,0,0,0,0) = f*f;
       (*this)[(Ly - 1)*Lx + col](0,0,0,1,0) = f;
-      (*this)[(Ly - 1)*Lx + col](1,0,0,0,0) = f;
-      (*this)[(Ly - 1)*Lx + col](1,0,0,1,0) = 1.0;
+      (*this)[(Ly - 1)*Lx + col](0,1,0,0,0) = f;
+      (*this)[(Ly - 1)*Lx + col](0,1,0,1,0) = 1.0;
 
-      (*this)[(Ly - 1)*Lx + col](0,0,1,0,1) = 1.0;
-      (*this)[(Ly - 1)*Lx + col](0,0,1,1,1) = f;
-      (*this)[(Ly - 1)*Lx + col](1,0,1,0,1) = f;
-      (*this)[(Ly - 1)*Lx + col](1,0,1,1,1) = f*f;
+      (*this)[(Ly - 1)*Lx + col](1,0,0,0,1) = 1.0;
+      (*this)[(Ly - 1)*Lx + col](1,0,0,1,1) = f;
+      (*this)[(Ly - 1)*Lx + col](1,1,0,0,1) = f;
+      (*this)[(Ly - 1)*Lx + col](1,1,0,1,1) = f*f;
 
    }
 
    //top row rightmost site
-   (*this)[(Ly - 1)*Lx + Lx - 1].resize(D,1,d,D,1);
+   (*this)[(Ly - 1)*Lx + Lx - 1].resize(d,D,1,D,1);
    (*this)[(Ly - 1)*Lx + Lx - 1] = 0.0;
 
    (*this)[(Ly - 1)*Lx + Lx - 1](0,0,0,0,0) = f*f;
    (*this)[(Ly - 1)*Lx + Lx - 1](0,0,0,1,0) = f;
-   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,0,0,0) = f;
-   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,0,1,0) = 1.0;
+   (*this)[(Ly - 1)*Lx + Lx - 1](0,1,0,0,0) = f;
+   (*this)[(Ly - 1)*Lx + Lx - 1](0,1,0,1,0) = 1.0;
 
-   (*this)[(Ly - 1)*Lx + Lx - 1](0,0,1,0,0) = 1.0;
-   (*this)[(Ly - 1)*Lx + Lx - 1](0,0,1,1,0) = f;
-   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,1,0,0) = f;
-   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,1,1,0) = f*f;
+   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,0,0,0) = 1.0;
+   (*this)[(Ly - 1)*Lx + Lx - 1](1,0,0,1,0) = f;
+   (*this)[(Ly - 1)*Lx + Lx - 1](1,1,0,0,0) = f;
+   (*this)[(Ly - 1)*Lx + Lx - 1](1,1,0,1,0) = f*f;
 
 }
 

@@ -37,8 +37,10 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
    D_aux = D_aux_in;
    comp_sweeps = comp_sweeps_in;
 
-   U = SL_PEPS(D);
-   I = SL_PEPS(D);
+   U.resize(2);
+
+   for(int i = 0;i < 2;++i)
+      U[i] = SL_PEPS(D);
 
    //allocate the memory
    
@@ -139,6 +141,8 @@ Environment::Environment(const Environment &env_copy){
    r = env_copy.gr();
    l = env_copy.gl();
 
+   U = env_copy.gU();
+
    D = env_copy.gD();
    D_aux = env_copy.gD_aux();
 
@@ -158,70 +162,53 @@ Environment::~Environment(){ }
  *               if 'T' construct full top environment
  *               if 'B' construct full bottom environment
  *               if 'A' construct all environments
- * @param option if true, regular walker, if false inverse walker
+ * @param inverse if true inverse walker
  * @param peps input PEPS<double>
  * @param D_aux dimension to which environment will be compressed
  */
-void Environment::calc(const char dir,bool option){
+void Environment::calc(const char dir,bool inverse){
 
-   //regular
-   if(option){
+   if(dir == 'B' || dir == 'A'){
 
-      if(dir == 'B' || dir == 'A'){
+      b[inverse * (Ly - 1)].fill('b',U[inverse]);
 
-         b[0].fill('b',U);
+      for(int i = 1;i < Ly - 1;++i)
+         this->add_layer('b',i,inverse);
 
-         for(int i = 1;i < Ly - 1;++i)
-            this->add_layer('b',i,true);
+   }
 
-      }
+   if(dir == 'T' || dir == 'A'){
 
-      if(dir == 'T' || dir == 'A'){
+      t[Ly - 2 + inverse * (Ly - 1)].fill('t',U[inverse]);
 
-         t[Ly - 2].fill('t',U);
+      for(int i = Ly - 3;i >= 0;--i)
+         this->add_layer('t',i,inverse);
 
-         for(int i = Ly - 3;i >= 0;--i)
-            this->add_layer('t',i,true);
-
-      }
-/*
+   }
+   /*
       if(option == 'R' || option == 'A'){
 
-         r[Lx - 2].fill('r',peps);
+      r[Lx - 2].fill('r',peps);
 
-         for(int i = Lx - 3;i >= 0;--i)
-            this->add_layer('r',i,peps);
+      for(int i = Lx - 3;i >= 0;--i)
+      this->add_layer('r',i,peps);
 
-         flag_r = true;
+      flag_r = true;
 
       }
 
       if(option == 'L' || option == 'A'){
 
-         l[0].fill('l',peps);
+      l[0].fill('l',peps);
 
-         for(int i = 1;i < Lx - 1;++i)
-            this->add_layer('l',i,peps);
+      for(int i = 1;i < Lx - 1;++i)
+      this->add_layer('l',i,peps);
 
-         flag_l = true;
-
-      }
-      */
-
-   }
-   else{//inverse
-
-      if(dir == 'B' || dir == 'A'){
-
-         b[Ly - 1].fill('b',I);
-
-         //     for(int i = 1;i < Ly - 1;++i)
-         int i = 1;
-         this->add_layer('b',i,false);
+      flag_l = true;
 
       }
+    */
 
-   }
 }
 
 /**
@@ -421,42 +408,34 @@ const vector< MPS > &Environment::gr() const {
 }
 
 /**
+ * @param inverse if true return inverse
  * @return the overlap between the regular walker and the PEPS
  */
-const SL_PEPS &Environment::gU() const {
+const SL_PEPS &Environment::gU(bool inverse) const {
+
+   return U[inverse];
+
+}
+
+/**
+ * @param inverse if true return inverse
+ * @return the overlap between the regular walker and the PEPS
+ */
+const std::vector< SL_PEPS > &Environment::gU() const {
 
    return U;
 
 }
 
 /**
- * @return the overlap between the regular walker and the PEPS
- */
-const SL_PEPS &Environment::gI() const {
-
-   return I;
-
-}
-
-/**
  * constract the physical indices of the PEPS with the walker, put it in U object
+ * @param inverse if true, take the inverse of the Walker
  * @param peps the PEPS<double> object
  * @param Walker the regular walker
  */
-void Environment::sU(const PEPS<double> &peps,const Walker &walker){
+void Environment::sU(bool inverse,const PEPS<double> &peps,const Walker &walker){
 
-   U.fill(true,peps,walker);
-
-}
-
-/**
- * constract the physical indices of the PEPS with the walker, put it in U or I
- * @param peps the PEPS<double> object
- * @param Walker the regular walker
- */
-void Environment::sI(const PEPS<double> &peps,const Walker &walker){
-
-   I.fill(false,peps,walker);
+   U[inverse].fill(inverse,peps,walker);
 
 }
 
@@ -464,22 +443,22 @@ void Environment::sI(const PEPS<double> &peps,const Walker &walker){
  * construct the (t,b,l or r) environment on row/col 'rc' by adding a the appropriate peps row/col and compressing the boundary MPS
  * @param dir 't'op, 'b'ottom, 'l'eft or 'r'ight environment
  * @param rc row or column index
- * @param option regular or inverse
+ * @param inverse if true, inverse of walker is taken
  */
-void Environment::add_layer(const char dir,int rc,bool option){
+void Environment::add_layer(const char dir,int rc,bool inverse){
 
    if(dir == 'b'){
 
-      b[rc].fill_Random();
+      b[rc + inverse * (Ly - 1)].fill_Random();
 
       vector< DArray<3> > R(Lx - 1);
 
       //first construct rightmost operator
       DArray<5> tmp5;
-      Contract(1.0,b[rc - 1][Lx - 1],shape(1),U(rc,Lx - 1),shape(2),0.0,tmp5);
+      Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(1),U[inverse](rc,Lx - 1),shape(2),0.0,tmp5);
 
       DArray<6> tmp6;
-      Contract(1.0,tmp5,shape(3),b[rc][Lx - 1],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
 
       R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
@@ -487,38 +466,38 @@ void Environment::add_layer(const char dir,int rc,bool option){
       for(int i = Lx - 2;i > 0;--i){
 
          DArray<4> tmp4;
-         Contract(1.0,b[rc - 1][i],shape(2),R[i],shape(0),0.0,tmp4);
+         Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,tmp4,shape(1,2),U(rc,i),shape(2,3),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(1,2),U[inverse](rc,i),shape(2,3),0.0,tmp4bis);
 
-         Contract(1.0,tmp4bis,shape(3,1),b[rc][i],shape(1,2),0.0,R[i - 1]);
+         Contract(1.0,tmp4bis,shape(3,1),b[rc + inverse * (Ly - 1)][i],shape(1,2),0.0,R[i - 1]);
 
       }
-      
+
       int iter = 0;
 
       while(iter < comp_sweeps){
 
          //now start sweeping to get the compressed boundary MPS
          DArray<4> tmp4;
-         Contract(1.0,b[rc - 1][0],shape(2),R[0],shape(0),0.0,tmp4);
+         Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][0],shape(2),R[0],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,U(rc,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
+         Contract(1.0,U[inverse](rc,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
 
-         b[rc][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
+         b[rc + inverse * (Ly - 1)][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
 
          //QR
          DArray<2> tmp2;
-         Geqrf(b[rc][0],tmp2);
+         Geqrf(b[rc + inverse * (Ly - 1)][0],tmp2);
 
          //construct new left operator
          tmp5.clear();
-         Contract(1.0,b[rc-1][0],shape(1),U(rc,0),shape(2),0.0,tmp5);
+         Contract(1.0,b[rc-1 + inverse * (Ly - 1)][0],shape(1),U[inverse](rc,0),shape(2),0.0,tmp5);
 
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),b[rc][0],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][0],shape(1),0.0,tmp6);
 
          R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(3),tmp6.shape(5)));
 
@@ -526,32 +505,32 @@ void Environment::add_layer(const char dir,int rc,bool option){
          for(int i = 1;i < Lx-1;++i){
 
             tmp4.clear();
-            Contract(1.0,R[i - 1],shape(0),b[rc - 1][i],shape(0),0.0,tmp4);
+            Contract(1.0,R[i - 1],shape(0),b[rc - 1 + inverse * (Ly - 1)][i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),U(rc,i),shape(0,2),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(0,2),U[inverse](rc,i),shape(0,2),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,1,3),tmp4);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc][i]);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc + inverse * (Ly - 1)][i]);
 
             //QR
             tmp2.clear();
             Geqrf(b[rc][i],tmp2);
 
             //construct new left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc][i],0.0,R[i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
 
          }
 
          //rightmost site
          tmp4.clear();
-         Contract(1.0,R[Lx - 2],shape(0),b[rc - 1][Lx - 1],shape(0),0.0,tmp4);
+         Contract(1.0,R[Lx - 2],shape(0),b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(0),0.0,tmp4);
 
          tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),U(rc,Lx - 1),shape(0,2),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(0,2),U[inverse](rc,Lx - 1),shape(0,2),0.0,tmp4bis);
 
-         b[rc][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
+         b[rc + inverse * (Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
 
          //LQ
          tmp2.clear();
@@ -559,10 +538,10 @@ void Environment::add_layer(const char dir,int rc,bool option){
 
          //construct new right operator
          tmp5.clear();
-         Contract(1.0,b[rc - 1][Lx - 1],shape(1),U(rc,Lx - 1),shape(2),0.0,tmp5);
+         Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(1),U[inverse](rc,Lx - 1),shape(2),0.0,tmp5);
 
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),b[rc][Lx - 1],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
 
          R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
@@ -570,57 +549,56 @@ void Environment::add_layer(const char dir,int rc,bool option){
          for(int i = Lx-2;i > 0;--i){
 
             tmp4.clear();
-            Contract(1.0,b[rc - 1][i],shape(2),R[i],shape(0),0.0,tmp4);
+            Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(1,2),U(rc,i),shape(2,3),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(1,2),U[inverse](rc,i),shape(2,3),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,3,1),tmp4);
 
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,b[rc][i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,b[rc + inverse*(Ly - 1)][i]);
 
             //LQ
             tmp2.clear();
-            Gelqf(tmp2,b[rc][i]);
+            Gelqf(tmp2,b[rc + inverse * (Ly - 1)][i]);
 
             //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,b[rc][i],0.0,R[i - 1]);
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i - 1]);
 
          }
 
          //multiply the last L matrix with the first matrix:
          DArray<3> tmp3;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc][0],tmp2,0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc + inverse * (Ly - 1)][0],tmp2,0.0,tmp3);
 
-         b[rc][0] = std::move(tmp3);
+         b[rc + inverse*(Ly - 1)][0] = std::move(tmp3);
 
          ++iter;
 
       }
 
       //redistribute the norm over the chain
-      double nrm =  Nrm2(b[rc][0]);
+      double nrm =  Nrm2(b[rc + inverse*(Ly - 1)][0]);
 
       //rescale the first site
-      Scal((1.0/nrm), b[rc][0]);
+      Scal((1.0/nrm), b[rc + inverse*(Ly - 1)][0]);
 
       //then multiply the norm over the whole chain
-      b[rc].scal(nrm);
+      b[rc + inverse*(Ly - 1)].scal(nrm);
 
-      cout << b[rc] << endl;
    }
    else if(dir == 't'){
 
-      t[rc].fill_Random();
+      t[rc + inverse*(Ly - 1)].fill_Random();
 
       vector< DArray<3> > R(Lx - 1);
 
       //first construct rightmost operator
       DArray<5> tmp5;
-      Contract(1.0,t[rc + 1][Lx - 1],shape(1),U(rc + 1,Lx - 1),shape(2),0.0,tmp5);
+      Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(2),0.0,tmp5);
 
       DArray<6> tmp6;
-      Contract(1.0,tmp5,shape(3),t[rc][Lx - 1],shape(1),0.0,tmp6);
+      Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
 
       R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
@@ -628,38 +606,38 @@ void Environment::add_layer(const char dir,int rc,bool option){
       for(int i = Lx - 2;i > 0;--i){
 
          DArray<4> tmp4;
-         Contract(1.0,t[rc + 1][i],shape(2),R[i],shape(0),0.0,tmp4);
+         Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,tmp4,shape(1,2),U(rc + 1,i),shape(2,3),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(1,2),U[inverse](rc + 1,i),shape(2,3),0.0,tmp4bis);
 
-         Contract(1.0,tmp4bis,shape(3,1),t[rc][i],shape(1,2),0.0,R[i - 1]);
+         Contract(1.0,tmp4bis,shape(3,1),t[rc + inverse*(Ly - 1)][i],shape(1,2),0.0,R[i - 1]);
 
       }
-      
+
       int iter = 0;
 
       while(iter < comp_sweeps){
 
          //now start sweeping to get the compressed boundary MPS
          DArray<4> tmp4;
-         Contract(1.0,t[rc + 1][0],shape(2),R[0],shape(0),0.0,tmp4);
+         Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][0],shape(2),R[0],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,U(rc + 1,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
+         Contract(1.0,U[inverse](rc + 1,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
 
-         t[rc][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
+         t[rc + inverse*(Ly - 1)][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
 
          //QR
          DArray<2> tmp2;
-         Geqrf(t[rc][0],tmp2);
+         Geqrf(t[rc + inverse*(Ly - 1)][0],tmp2);
 
          //construct new left operator
          tmp5.clear();
-         Contract(1.0,t[rc+1][0],shape(1),U(rc+1,0),shape(2),0.0,tmp5);
+         Contract(1.0,t[rc+1 + inverse*(Ly - 1)][0],shape(1),U[inverse](rc+1,0),shape(2),0.0,tmp5);
 
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),t[rc][0],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][0],shape(1),0.0,tmp6);
 
          R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(3),tmp6.shape(5)));
 
@@ -667,43 +645,43 @@ void Environment::add_layer(const char dir,int rc,bool option){
          for(int i = 1;i < Lx-1;++i){
 
             tmp4.clear();
-            Contract(1.0,R[i - 1],shape(0),t[rc + 1][i],shape(0),0.0,tmp4);
+            Contract(1.0,R[i - 1],shape(0),t[rc + 1 + inverse*(Ly - 1)][i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),U(rc + 1,i),shape(0,2),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,i),shape(0,2),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,1,3),tmp4);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,t[rc][i]);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,t[rc + inverse*(Ly - 1)][i]);
 
             //QR
             tmp2.clear();
-            Geqrf(t[rc][i],tmp2);
+            Geqrf(t[rc + inverse*(Ly - 1)][i],tmp2);
 
             //construct new left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,t[rc][i],0.0,R[i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,t[rc + inverse*(Ly - 1)][i],0.0,R[i]);
 
          }
 
          //rightmost site
          tmp4.clear();
-         Contract(1.0,R[Lx - 2],shape(0),t[rc + 1][Lx - 1],shape(0),0.0,tmp4);
+         Contract(1.0,R[Lx - 2],shape(0),t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(0),0.0,tmp4);
 
          tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),U(rc + 1,Lx - 1),shape(0,2),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,Lx - 1),shape(0,2),0.0,tmp4bis);
 
-         t[rc][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
+         t[rc + inverse*(Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
 
          //LQ
          tmp2.clear();
-         Gelqf(tmp2,t[rc][Lx - 1]);
+         Gelqf(tmp2,t[rc + inverse*(Ly - 1)][Lx - 1]);
 
          //construct new right operator
          tmp5.clear();
-         Contract(1.0,t[rc + 1][Lx - 1],shape(1),U(rc + 1,Lx - 1),shape(2),0.0,tmp5);
+         Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(2),0.0,tmp5);
 
          tmp6.clear();
-         Contract(1.0,tmp5,shape(3),t[rc][Lx - 1],shape(1),0.0,tmp6);
+         Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
 
          R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
@@ -711,235 +689,337 @@ void Environment::add_layer(const char dir,int rc,bool option){
          for(int i = Lx-2;i > 0;--i){
 
             tmp4.clear();
-            Contract(1.0,t[rc + 1][i],shape(2),R[i],shape(0),0.0,tmp4);
+            Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(1,2),U(rc+1,i),shape(2,3),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(1,2),U[inverse](rc+1,i),shape(2,3),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,3,1),tmp4);
 
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,t[rc][i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,t[rc + inverse*(Ly - 1)][i]);
 
             //LQ
             tmp2.clear();
-            Gelqf(tmp2,t[rc][i]);
+            Gelqf(tmp2,t[rc + inverse*(Ly - 1)][i]);
 
             //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,t[rc][i],0.0,R[i - 1]);
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,t[rc + inverse*(Ly - 1)][i],0.0,R[i - 1]);
 
          }
 
          //multiply the last L matrix with the first matrix:
          DArray<3> tmp3;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,t[rc][0],tmp2,0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,t[rc + inverse*(Ly - 1)][0],tmp2,0.0,tmp3);
 
-         b[rc][0] = std::move(tmp3);
+         t[rc + inverse*(Ly - 1)][0] = std::move(tmp3);
 
          ++iter;
 
       }
 
       //redistribute the norm over the chain
-      double nrm =  Nrm2(t[rc][0]);
+      double nrm =  Nrm2(t[rc + inverse*(Ly - 1)][0]);
 
       //rescale the first site
-      Scal((1.0/nrm), t[rc][0]);
+      Scal((1.0/nrm), t[rc + inverse*(Ly - 1)][0]);
 
       //then multiply the norm over the whole chain
-      t[rc].scal(nrm);
+      t[rc + inverse*(Ly - 1)].scal(nrm);
 
    }
    /*
-   else if(option == 'r'){
+      else if(option == 'r'){
 
       if(!flag_r)
-         r[rc].fill_Random();
+      r[rc].fill_Random();
 
       vector< DArray<4> > R(Ly - 1);
 
-      //first construct rightmost operator
-      DArray<7> tmp7;
-      Contract(1.0,r[rc + 1][Ly - 1],shape(1),peps(Ly - 1,rc+1),shape(4),0.0,tmp7);
+//first construct rightmost operator
+DArray<7> tmp7;
+Contract(1.0,r[rc + 1][Ly - 1],shape(1),peps(Ly - 1,rc+1),shape(4),0.0,tmp7);
 
-      DArray<8> tmp8;
-      Contract(1.0,tmp7,shape(1,5),peps(Ly-1,rc+1),shape(4,2),0.0,tmp8);
+DArray<8> tmp8;
+Contract(1.0,tmp7,shape(1,5),peps(Ly-1,rc+1),shape(4,2),0.0,tmp8);
 
-      DArray<8> tmp8bis;
-      Contract(1.0,tmp8,shape(2,5),r[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
+DArray<8> tmp8bis;
+Contract(1.0,tmp8,shape(2,5),r[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
 
-      R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
+R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
 
-      //now move from right to left to construct the rest
-      for(int i = Ly - 2;i > 0;--i){
+//now move from right to left to construct the rest
+for(int i = Ly - 2;i > 0;--i){
 
-         DArray<6> tmp6;
-         Contract(1.0,r[rc + 1][i],shape(3),R[i],shape(0),0.0,tmp6);
+DArray<6> tmp6;
+Contract(1.0,r[rc + 1][i],shape(3),R[i],shape(0),0.0,tmp6);
 
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(1,3),peps(i,rc+1),shape(4,1),0.0,tmp7);
+tmp7.clear();
+Contract(1.0,tmp6,shape(1,3),peps(i,rc+1),shape(4,1),0.0,tmp7);
 
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(1,2,5),peps(i,rc+1),shape(4,1,2),0.0,tmp6);
+tmp6.clear();
+Contract(1.0,tmp7,shape(1,2,5),peps(i,rc+1),shape(4,1,2),0.0,tmp6);
 
-         Contract(1.0,tmp6,shape(2,4,1),r[rc][i],shape(1,2,3),0.0,R[i - 1]);
+Contract(1.0,tmp6,shape(2,4,1),r[rc][i],shape(1,2,3),0.0,R[i - 1]);
 
-      }
+}
 
-      int iter = 0;
+int iter = 0;
 
-      while(iter < comp_sweeps){
+while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPS
-         DArray<6> tmp6;
-         Contract(1.0,r[rc + 1][0],shape(3),R[0],shape(0),0.0,tmp6);
+//now start sweeping to get the compressed boundary MPS
+DArray<6> tmp6;
+Contract(1.0,r[rc + 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 
-         tmp7.clear();
-         Contract(1.0,peps(0,rc+1),shape(1,4),tmp6,shape(4,2),0.0,tmp7);
+tmp7.clear();
+Contract(1.0,peps(0,rc+1),shape(1,4),tmp6,shape(4,2),0.0,tmp7);
 
-         tmp6.clear();
-         Contract(1.0,peps(0,rc+1),shape(2,4,1),tmp7,shape(1,4,5),0.0,tmp6);
+tmp6.clear();
+Contract(1.0,peps(0,rc+1),shape(2,4,1),tmp7,shape(1,4,5),0.0,tmp6);
 
-         r[rc][0] = tmp6.reshape_clear(shape(1,D,D,tmp6.shape(5)));
+r[rc][0] = tmp6.reshape_clear(shape(1,D,D,tmp6.shape(5)));
 
-         //QR
-         DArray<2> tmp2;
-         Geqrf(r[rc][0],tmp2);
+//QR
+DArray<2> tmp2;
+Geqrf(r[rc][0],tmp2);
 
-         //construct new left operator
-         tmp7.clear();
-         Contract(1.0,r[rc+1][0],shape(1),peps(0,rc+1),shape(4),0.0,tmp7);
+//construct new left operator
+tmp7.clear();
+Contract(1.0,r[rc+1][0],shape(1),peps(0,rc+1),shape(4),0.0,tmp7);
 
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,5),peps(0,rc+1),shape(4,2),0.0,tmp8);
+tmp8.clear();
+Contract(1.0,tmp7,shape(1,5),peps(0,rc+1),shape(4,2),0.0,tmp8);
 
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(2,5),r[rc][0],shape(1,2),0.0,tmp8bis);
+tmp8bis.clear();
+Contract(1.0,tmp8,shape(2,5),r[rc][0],shape(1,2),0.0,tmp8bis);
 
-         R[0] = tmp8bis.reshape_clear(shape(tmp8bis.shape(1),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(7)));
+R[0] = tmp8bis.reshape_clear(shape(tmp8bis.shape(1),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(7)));
 
-         //now for the rest of the rightgoing sweep.
-         for(int i = 1;i < Ly-1;++i){
+//now for the rest of the rightgoing sweep.
+for(int i = 1;i < Ly-1;++i){
 
-            tmp6.clear();
-            Contract(1.0,R[i - 1],shape(0),r[rc + 1][i],shape(0),0.0,tmp6);
+tmp6.clear();
+Contract(1.0,R[i - 1],shape(0),r[rc + 1][i],shape(0),0.0,tmp6);
 
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(0,3),peps(i,rc+1),shape(3,4),0.0,tmp7);
+tmp7.clear();
+Contract(1.0,tmp6,shape(0,3),peps(i,rc+1),shape(3,4),0.0,tmp7);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(0,2,6),peps(i,rc+1),shape(3,4,2),0.0,tmp6);
+tmp6.clear();
+Contract(1.0,tmp7,shape(0,2,6),peps(i,rc+1),shape(3,4,2),0.0,tmp6);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
+DArray<6> tmp6bis;
+Permute(tmp6,shape(0,2,4,1,3,5),tmp6bis);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,R[i],0.0,r[rc][i]);
+Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,R[i],0.0,r[rc][i]);
 
-            //QR
-            tmp2.clear();
-            Geqrf(r[rc][i],tmp2);
+//QR
+tmp2.clear();
+Geqrf(r[rc][i],tmp2);
 
-            //construct left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp6bis,r[rc][i],0.0,R[i]);
+//construct left operator
+Gemm(CblasTrans,CblasNoTrans,1.0,tmp6bis,r[rc][i],0.0,R[i]);
 
-         }
+}
 
-         //rightmost site
-         tmp6.clear();
-         Contract(1.0,R[Ly - 2],shape(0),r[rc + 1][Ly - 1],shape(0),0.0,tmp6);
+//rightmost site
+tmp6.clear();
+Contract(1.0,R[Ly - 2],shape(0),r[rc + 1][Ly - 1],shape(0),0.0,tmp6);
 
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(0,3),peps(Ly - 1,rc+1),shape(3,4),0.0,tmp7);
+tmp7.clear();
+Contract(1.0,tmp6,shape(0,3),peps(Ly - 1,rc+1),shape(3,4),0.0,tmp7);
 
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(0,2,6),peps(Ly - 1,rc + 1),shape(3,4,2),0.0,tmp6);
+tmp6.clear();
+Contract(1.0,tmp7,shape(0,2,6),peps(Ly - 1,rc + 1),shape(3,4,2),0.0,tmp6);
 
-         r[rc][Ly - 1] = tmp6.reshape_clear(shape(tmp6.shape(0),D,D,1));
+r[rc][Ly - 1] = tmp6.reshape_clear(shape(tmp6.shape(0),D,D,1));
 
-         //LQ
-         tmp2.clear();
-         Gelqf(tmp2,r[rc][Ly - 1]);
+//LQ
+tmp2.clear();
+Gelqf(tmp2,r[rc][Ly - 1]);
 
-         //construct new right operator
-         tmp7.clear();
-         Contract(1.0,r[rc + 1][Ly - 1],shape(1),peps(Ly - 1,rc+1),shape(4),0.0,tmp7);
+//construct new right operator
+tmp7.clear();
+Contract(1.0,r[rc + 1][Ly - 1],shape(1),peps(Ly - 1,rc+1),shape(4),0.0,tmp7);
 
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,5),peps(Ly - 1,rc+1),shape(4,2),0.0,tmp8);
+tmp8.clear();
+Contract(1.0,tmp7,shape(1,5),peps(Ly - 1,rc+1),shape(4,2),0.0,tmp8);
 
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(2,5),r[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
+tmp8bis.clear();
+Contract(1.0,tmp8,shape(2,5),r[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
 
-         R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
+R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
 
-         //back to the beginning with a leftgoing sweep
-         for(int i = Ly-2;i > 0;--i){
+//back to the beginning with a leftgoing sweep
+for(int i = Ly-2;i > 0;--i){
 
-            tmp6.clear();
-            Contract(1.0,r[rc + 1][i],shape(3),R[i],shape(0),0.0,tmp6);
+   tmp6.clear();
+   Contract(1.0,r[rc + 1][i],shape(3),R[i],shape(0),0.0,tmp6);
 
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(1,3),peps(i,rc+1),shape(4,1),0.0,tmp7);
+   tmp7.clear();
+   Contract(1.0,tmp6,shape(1,3),peps(i,rc+1),shape(4,1),0.0,tmp7);
 
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,5),peps(i,rc+1),shape(4,1,2),0.0,tmp6);
+   tmp6.clear();
+   Contract(1.0,tmp7,shape(1,2,5),peps(i,rc+1),shape(4,1,2),0.0,tmp6);
 
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,3,5,2,4,1),tmp6bis);
+   DArray<6> tmp6bis;
+   Permute(tmp6,shape(0,3,5,2,4,1),tmp6bis);
 
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp6bis,0.0,r[rc][i]);
+   Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp6bis,0.0,r[rc][i]);
 
-            //LQ
-            tmp2.clear();
-            Gelqf(tmp2,r[rc][i]);
+   //LQ
+   tmp2.clear();
+   Gelqf(tmp2,r[rc][i]);
 
-            //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,r[rc][i],0.0,R[i - 1]);
+   //construct right operator
+   Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,r[rc][i],0.0,R[i - 1]);
 
-         }
+}
 
-         //multiply the last L matrix with the first matrix:
-         DArray<4> tmp4;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,r[rc][0],tmp2,0.0,tmp4);
+//multiply the last L matrix with the first matrix:
+DArray<4> tmp4;
+Gemm(CblasNoTrans,CblasNoTrans,1.0,r[rc][0],tmp2,0.0,tmp4);
 
-         r[rc][0] = std::move(tmp4);
+r[rc][0] = std::move(tmp4);
 
-         ++iter;
+++iter;
 
-      }
+}
 
-      //redistribute the norm over the chain
-      double nrm =  Nrm2(r[rc][0]);
+//redistribute the norm over the chain
+double nrm =  Nrm2(r[rc][0]);
 
-      //rescale the first site
-      Scal((1.0/nrm), r[rc][0]);
+//rescale the first site
+Scal((1.0/nrm), r[rc][0]);
 
-      //then multiply the norm over the whole chain
-      r[rc].scal(nrm);
+//then multiply the norm over the whole chain
+r[rc].scal(nrm);
+
+}
+else{//left
+
+   if(!flag_l)
+      l[rc].fill_Random();
+
+   vector< DArray<4> > R(Ly - 1);
+
+   //first construct rightmost operator
+   DArray<7> tmp7;
+   Contract(1.0,l[rc - 1][Ly - 1],shape(1),peps(Ly-1,rc),shape(0),0.0,tmp7);
+
+   DArray<8> tmp8;
+   Contract(1.0,tmp7,shape(1,4),peps(Ly - 1,rc),shape(0,2),0.0,tmp8);
+
+   DArray<8> tmp8bis;
+   Contract(1.0,tmp8,shape(4,7),l[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
+
+   R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
+
+   //now move from right to left to construct the rest
+   for(int i = Ly - 2;i > 0;--i){
+
+      DArray<6> tmp6;
+      Contract(1.0,l[rc - 1][i],shape(3),R[i],shape(0),0.0,tmp6);
+
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(1,3),peps(i,rc),shape(0,1),0.0,tmp7);
+
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(1,2,4),peps(i,rc),shape(0,1,2),0.0,tmp6);
+
+      Contract(1.0,tmp6,shape(3,5,1),l[rc][i],shape(1,2,3),0.0,R[i - 1]);
 
    }
-   else{//left
 
-      if(!flag_l)
-         l[rc].fill_Random();
+   int iter = 0;
 
-      vector< DArray<4> > R(Ly - 1);
+   while(iter < comp_sweeps){
 
-      //first construct rightmost operator
-      DArray<7> tmp7;
-      Contract(1.0,l[rc - 1][Ly - 1],shape(1),peps(Ly-1,rc),shape(0),0.0,tmp7);
+      //now start sweeping to get the compressed boundary MPS
+      DArray<6> tmp6;
+      Contract(1.0,l[rc - 1][0],shape(3),R[0],shape(0),0.0,tmp6);
 
-      DArray<8> tmp8;
+      tmp7.clear();
+      Contract(1.0,peps(0,rc),shape(0,1),tmp6,shape(2,4),0.0,tmp7);
+
+      tmp6.clear();
+      Contract(1.0,peps(0,rc),shape(0,1,2),tmp7,shape(4,5,0),0.0,tmp6);
+
+      l[rc][0] = tmp6.reshape_clear(shape(1,D,D,tmp6.shape(5)));
+
+      //QR
+      DArray<2> tmp2;
+      Geqrf(l[rc][0],tmp2);
+
+      //construct new left operator
+      tmp7.clear();
+      Contract(1.0,l[rc-1][0],shape(1),peps(0,rc),shape(0),0.0,tmp7);
+
+      tmp8.clear();
+      Contract(1.0,tmp7,shape(1,4),peps(0,rc),shape(0,2),0.0,tmp8);
+
+      tmp8bis.clear();
+      Contract(1.0,tmp8,shape(4,7),l[rc][0],shape(1,2),0.0,tmp8bis);
+
+      R[0] = tmp8bis.reshape_clear(shape(tmp8bis.shape(1),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(7)));
+
+      //now for the rest of the rightgoing sweep.
+      for(int i = 1;i < Ly-1;++i){
+
+         tmp6.clear();
+         Contract(1.0,R[i - 1],shape(0),l[rc - 1][i],shape(0),0.0,tmp6);
+
+         tmp7.clear();
+         Contract(1.0,tmp6,shape(0,3),peps(i,rc),shape(3,0),0.0,tmp7);
+
+         tmp6.clear();
+         Contract(1.0,tmp7,shape(0,2,5),peps(i,rc),shape(3,0,2),0.0,tmp6);
+
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
+
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,R[i],0.0,l[rc][i]);
+
+         //QR
+         tmp2.clear();
+         Geqrf(l[rc][i],tmp2);
+
+         //construct left operator
+         Gemm(CblasTrans,CblasNoTrans,1.0,tmp6bis,l[rc][i],0.0,R[i]);
+
+      }
+
+      //rightmost site
+      tmp6.clear();
+      Contract(1.0,R[Ly - 2],shape(0),l[rc - 1][Ly - 1],shape(0),0.0,tmp6);
+
+      tmp7.clear();
+      Contract(1.0,tmp6,shape(0,3),peps(Ly - 1,rc),shape(3,0),0.0,tmp7);
+
+      tmp6.clear();
+      Contract(1.0,tmp7,shape(0,2,5),peps(Ly - 1,rc),shape(3,0,2),0.0,tmp6);
+
+      l[rc][Ly - 1] = tmp6.reshape_clear(shape(tmp6.shape(0),D,D,1));
+
+      //LQ
+      tmp2.clear();
+      Gelqf(tmp2,l[rc][Ly - 1]);
+
+      //construct new right operator
+      tmp7.clear();
+      Contract(1.0,l[rc - 1][Ly - 1],shape(1),peps(Ly - 1,rc),shape(0),0.0,tmp7);
+
+      tmp8.clear();
       Contract(1.0,tmp7,shape(1,4),peps(Ly - 1,rc),shape(0,2),0.0,tmp8);
 
-      DArray<8> tmp8bis;
+      tmp8bis.clear();
       Contract(1.0,tmp8,shape(4,7),l[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
 
       R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
 
-      //now move from right to left to construct the rest
-      for(int i = Ly - 2;i > 0;--i){
+      //back to the beginning with a leftgoing sweep
+      for(int i = Ly-2;i > 0;--i){
 
-         DArray<6> tmp6;
+         tmp6.clear();
          Contract(1.0,l[rc - 1][i],shape(3),R[i],shape(0),0.0,tmp6);
 
          tmp7.clear();
@@ -948,141 +1028,39 @@ void Environment::add_layer(const char dir,int rc,bool option){
          tmp6.clear();
          Contract(1.0,tmp7,shape(1,2,4),peps(i,rc),shape(0,1,2),0.0,tmp6);
 
-         Contract(1.0,tmp6,shape(3,5,1),l[rc][i],shape(1,2,3),0.0,R[i - 1]);
+         DArray<6> tmp6bis;
+         Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
 
-      }
-
-      int iter = 0;
-
-      while(iter < comp_sweeps){
-
-         //now start sweeping to get the compressed boundary MPS
-         DArray<6> tmp6;
-         Contract(1.0,l[rc - 1][0],shape(3),R[0],shape(0),0.0,tmp6);
-
-         tmp7.clear();
-         Contract(1.0,peps(0,rc),shape(0,1),tmp6,shape(2,4),0.0,tmp7);
-
-         tmp6.clear();
-         Contract(1.0,peps(0,rc),shape(0,1,2),tmp7,shape(4,5,0),0.0,tmp6);
-
-         l[rc][0] = tmp6.reshape_clear(shape(1,D,D,tmp6.shape(5)));
-
-         //QR
-         DArray<2> tmp2;
-         Geqrf(l[rc][0],tmp2);
-
-         //construct new left operator
-         tmp7.clear();
-         Contract(1.0,l[rc-1][0],shape(1),peps(0,rc),shape(0),0.0,tmp7);
-
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,4),peps(0,rc),shape(0,2),0.0,tmp8);
-
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(4,7),l[rc][0],shape(1,2),0.0,tmp8bis);
-
-         R[0] = tmp8bis.reshape_clear(shape(tmp8bis.shape(1),tmp8bis.shape(2),tmp8bis.shape(4),tmp8bis.shape(7)));
-
-         //now for the rest of the rightgoing sweep.
-         for(int i = 1;i < Ly-1;++i){
-
-            tmp6.clear();
-            Contract(1.0,R[i - 1],shape(0),l[rc - 1][i],shape(0),0.0,tmp6);
-
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(0,3),peps(i,rc),shape(3,0),0.0,tmp7);
-
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(0,2,5),peps(i,rc),shape(3,0,2),0.0,tmp6);
-
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,3,5,1,2,4),tmp6bis);
-
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp6bis,R[i],0.0,l[rc][i]);
-
-            //QR
-            tmp2.clear();
-            Geqrf(l[rc][i],tmp2);
-
-            //construct left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp6bis,l[rc][i],0.0,R[i]);
-
-         }
-
-         //rightmost site
-         tmp6.clear();
-         Contract(1.0,R[Ly - 2],shape(0),l[rc - 1][Ly - 1],shape(0),0.0,tmp6);
-
-         tmp7.clear();
-         Contract(1.0,tmp6,shape(0,3),peps(Ly - 1,rc),shape(3,0),0.0,tmp7);
-
-         tmp6.clear();
-         Contract(1.0,tmp7,shape(0,2,5),peps(Ly - 1,rc),shape(3,0,2),0.0,tmp6);
-
-         l[rc][Ly - 1] = tmp6.reshape_clear(shape(tmp6.shape(0),D,D,1));
+         Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp6bis,0.0,l[rc][i]);
 
          //LQ
          tmp2.clear();
-         Gelqf(tmp2,l[rc][Ly - 1]);
+         Gelqf(tmp2,l[rc][i]);
 
-         //construct new right operator
-         tmp7.clear();
-         Contract(1.0,l[rc - 1][Ly - 1],shape(1),peps(Ly - 1,rc),shape(0),0.0,tmp7);
-
-         tmp8.clear();
-         Contract(1.0,tmp7,shape(1,4),peps(Ly - 1,rc),shape(0,2),0.0,tmp8);
-
-         tmp8bis.clear();
-         Contract(1.0,tmp8,shape(4,7),l[rc][Ly - 1],shape(1,2),0.0,tmp8bis);
-
-         R[Ly - 2] = tmp8bis.reshape_clear(shape(tmp8bis.shape(0),tmp8bis.shape(3),tmp8bis.shape(5),tmp8bis.shape(6)));
-
-         //back to the beginning with a leftgoing sweep
-         for(int i = Ly-2;i > 0;--i){
-
-            tmp6.clear();
-            Contract(1.0,l[rc - 1][i],shape(3),R[i],shape(0),0.0,tmp6);
-
-            tmp7.clear();
-            Contract(1.0,tmp6,shape(1,3),peps(i,rc),shape(0,1),0.0,tmp7);
-
-            tmp6.clear();
-            Contract(1.0,tmp7,shape(1,2,4),peps(i,rc),shape(0,1,2),0.0,tmp6);
-
-            DArray<6> tmp6bis;
-            Permute(tmp6,shape(0,2,4,3,5,1),tmp6bis);
-
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp6bis,0.0,l[rc][i]);
-
-            //LQ
-            tmp2.clear();
-            Gelqf(tmp2,l[rc][i]);
-
-            //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,l[rc][i],0.0,R[i - 1]);
-
-         }
-
-         //multiply the last L matrix with the first matrix:
-         DArray<4> tmp4;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc][0],tmp2,0.0,tmp4);
-
-         l[rc][0] = std::move(tmp4);
-
-         ++iter;
+         //construct right operator
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp6bis,l[rc][i],0.0,R[i - 1]);
 
       }
 
-      //redistribute the norm over the chain
-      double nrm =  Nrm2(l[rc][0]);
+      //multiply the last L matrix with the first matrix:
+      DArray<4> tmp4;
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc][0],tmp2,0.0,tmp4);
 
-      //rescale the first site
-      Scal((1.0/nrm), l[rc][0]);
+      l[rc][0] = std::move(tmp4);
 
-      //then multiply the norm over the whole chain
-      l[rc].scal(nrm);
+      ++iter;
 
    }
-   */
+
+   //redistribute the norm over the chain
+   double nrm =  Nrm2(l[rc][0]);
+
+   //rescale the first site
+   Scal((1.0/nrm), l[rc][0]);
+
+   //then multiply the norm over the whole chain
+   l[rc].scal(nrm);
+
+}
+*/
 }

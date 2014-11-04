@@ -93,18 +93,18 @@ int SL_PEPS::gD() const {
 
 /**
  * fill the SL_PEPS object by contracting a peps with a walker
- * @param option if true take the regular state, if false inverted walker state for contraction
+ * @param inverse if true take the inverse walker
  * @param peps input PEPS<> object
  * @param walker the Walker object
  */
-void SL_PEPS::fill(bool option,const PEPS< double > &peps,const Walker &walker){
+void SL_PEPS::fill(bool inverse,const PEPS< double > &peps,const Walker &walker){
 
    for(int r = 0;r < Ly;++r)
       for(int c = 0;c < Lx;++c){
 
          int dim = peps(r,c).size()/2;
 
-         if(!option)
+         if(inverse)
             blas::copy(dim,peps(r,c).data() + (!walker[r*Lx + c])*dim,1,(*this)[r*Lx + c].data(),1);
          else
             blas::copy(dim,peps(r,c).data() + walker[r*Lx + c]*dim,1,(*this)[r*Lx + c].data(),1);

@@ -301,7 +301,6 @@ ostream &operator<<(ostream &output,const MPS &mps_p){
 
 }
 
-
 /**
  * scale the MPS with a constant factor
  * @param alpha scalingfactor

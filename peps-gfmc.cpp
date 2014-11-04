@@ -35,9 +35,12 @@ int main(int argc,char *argv[]){
 
    Environment env(D,D_aux,1);
 
-   env.sU(peps,walker);
-   env.calc('B',true);
-   //env.calc('T',true);
+   env.sU(false,peps,walker);
+
+   env.calc('B',false);
+   env.calc('T',false);
+
+   env.test(false);
 
 /*
    double dtau = 0.01;
