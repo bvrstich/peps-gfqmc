@@ -213,21 +213,21 @@ void Environment::calc(const char dir,bool inverse){
 
 /**
  * test if the enviroment is correctly contracted
- * @param option if true, regular walker, if false inverse walker
+ * @param inverse if true inverse walker is used
  */
-void Environment::test(bool option){
+void Environment::test(bool inverse){
 
    cout << endl;
    cout << "FROM BOTTOM TO TOP" << endl;
    cout << endl;
    for(int i = 0;i < Ly - 1;++i)
-      cout << i << "\t" << b[i + option * (Ly - 1)].dot(t[i + option * (Ly - 1) ]) << endl;
+      cout << i << "\t" << b[i + inverse * (Ly - 1)].dot(t[i + inverse * (Ly - 1) ]) << endl;
 
    cout << endl;
    cout << "FROM LEFT TO RIGHT" << endl;
    cout << endl;
    for(int i = 0;i < Lx - 1;++i)
-      cout << i << "\t" << l[i + option * (Lx - 1)].dot(r[i + option * (Lx - 1)]) << endl;
+      cout << i << "\t" << l[i + inverse * (Lx - 1)].dot(r[i + inverse * (Lx - 1)]) << endl;
    cout << endl;
 }
 
@@ -595,7 +595,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
       //first construct rightmost operator
       DArray<5> tmp5;
-      Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(2),0.0,tmp5);
+      Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(1),0.0,tmp5);
 
       DArray<6> tmp6;
       Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
@@ -609,7 +609,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,tmp4,shape(1,2),U[inverse](rc + 1,i),shape(2,3),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(1,2),U[inverse](rc + 1,i),shape(1,3),0.0,tmp4bis);
 
          Contract(1.0,tmp4bis,shape(3,1),t[rc + inverse*(Ly - 1)][i],shape(1,2),0.0,R[i - 1]);
 
@@ -624,7 +624,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][0],shape(2),R[0],shape(0),0.0,tmp4);
 
          DArray<4> tmp4bis;
-         Contract(1.0,U[inverse](rc + 1,0),shape(2,3),tmp4,shape(1,2),0.0,tmp4bis);
+         Contract(1.0,U[inverse](rc + 1,0),shape(1,3),tmp4,shape(1,2),0.0,tmp4bis);
 
          t[rc + inverse*(Ly - 1)][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
 
@@ -634,7 +634,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
          //construct new left operator
          tmp5.clear();
-         Contract(1.0,t[rc+1 + inverse*(Ly - 1)][0],shape(1),U[inverse](rc+1,0),shape(2),0.0,tmp5);
+         Contract(1.0,t[rc+1 + inverse*(Ly - 1)][0],shape(1),U[inverse](rc+1,0),shape(1),0.0,tmp5);
 
          tmp6.clear();
          Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][0],shape(1),0.0,tmp6);
@@ -648,7 +648,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
             Contract(1.0,R[i - 1],shape(0),t[rc + 1 + inverse*(Ly - 1)][i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,i),shape(0,2),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,i),shape(0,1),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,1,3),tmp4);
 
@@ -668,7 +668,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          Contract(1.0,R[Lx - 2],shape(0),t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(0),0.0,tmp4);
 
          tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,Lx - 1),shape(0,2),0.0,tmp4bis);
+         Contract(1.0,tmp4,shape(0,2),U[inverse](rc + 1,Lx - 1),shape(0,1),0.0,tmp4bis);
 
          t[rc + inverse*(Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
 
@@ -678,7 +678,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
          //construct new right operator
          tmp5.clear();
-         Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(2),0.0,tmp5);
+         Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][Lx - 1],shape(1),U[inverse](rc + 1,Lx - 1),shape(1),0.0,tmp5);
 
          tmp6.clear();
          Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
@@ -692,7 +692,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
             Contract(1.0,t[rc + 1 + inverse*(Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(1,2),U[inverse](rc+1,i),shape(2,3),0.0,tmp4bis);
+            Contract(1.0,tmp4,shape(1,2),U[inverse](rc+1,i),shape(1,3),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,2,3,1),tmp4);
 
