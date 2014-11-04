@@ -264,9 +264,12 @@ void MPS::fill(char option,const SL_PEPS &slp) {
       //just a deep copy of slp left column
       for(int row = 0;row < Ly;++row){
 
-         int dim = slp(row,0).size();
+         DArray<4> tmp4;
+         Permute(slp(row,0),shape(2,0,3,1),tmp4);
 
-         blas::copy(dim,slp(row,0).data(),1,(*this)[row].data(),1);
+         //shallow copy of the memory
+         (*this)[row].share_mem(tmp4);
+
 
       }
 
@@ -277,9 +280,10 @@ void MPS::fill(char option,const SL_PEPS &slp) {
       for(int row = 0;row < Ly;++row){
 
          DArray<4> tmp4;
-
          Permute(slp(row,Lx-1),shape(2,0,3,1),tmp4);
-         cout << tmp4 << endl;
+
+         //shallow copy of the memory
+         (*this)[row].share_mem(tmp4);
 
       }
 
