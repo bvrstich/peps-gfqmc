@@ -857,7 +857,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
       Scal((1.0/nrm),r[rc + inverse*(Lx - 1)][0]);
 
       //then multiply the norm over the whole chain
-      r[rc].scal(nrm);
+      r[rc + inverse*(Lx - 1)].scal(nrm);
 
    }
    else{//left
