@@ -16,8 +16,12 @@
 { std::cout << "BTAS_DEBUG: " << msg << std::endl; }
 
 #include <stdexcept>
+#ifndef NDEBUG
 #define BTAS_THROW(truth, msg)\
 { if (!(truth)) { throw std::runtime_error(msg); } }
+#else
+#define BTAS_THROW(truth,msg)
+#endif
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/complex.hpp>

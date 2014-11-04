@@ -80,7 +80,14 @@ void Contract (
    {
       TArray<T, N> axb;
 
-      if(c.size() > 0) Permute(c, symbolC, axb, symbolAxB);
+      //my change! don't permute if you are not going to add anything anyway
+      if(c.size() > 0 && fabs(beta) > 1.0e-15){
+
+         std::cout << "YOU BETTER NOT GO HERE!!!" << std::endl;
+         
+         Permute(c, symbolC, axb, symbolAxB);
+
+      }
 
       Contract(alpha, a, contractA, b, contractB, beta, axb);
 

@@ -346,19 +346,14 @@ public:
   /*! detects rank-mismatching error at compilation time */
   void resize(const IVector<N>& _shape) {
     m_shape = _shape;
-
     // calculate stride
     size_t stride = 1;
     for(int i = N-1; i >= 0; --i) {
       m_stride[i] = stride;
       stride *= m_shape[i];
     }
-
-    //std::cout << stride << std::endl;
     // allocate memory
     m_store->resize(stride);
-
-    //std::cout << m_store->size() << std::endl;
     return;
   }
 
@@ -389,6 +384,13 @@ public:
       return x;
 
    }
+
+   /// share the memory
+   template<size_t M>
+      void share_mem (TArray<T,M> &x)
+      {
+         this->m_store = x.m_store; // shallow copy
+      }
 
    /// return shared reference reshaped
    /// implaced reshape can be done as
