@@ -593,47 +593,71 @@ void Walker::calc_EL(){
 
    }
 
-   cout << EL << endl;
-/*
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
    //first construct the right renormalized operators
 
-   //tmp comes out index (t,b)
+   //A: regular
    tmp4.clear();
-   Contract(1.0,env[myID].gt[Ly-2][Lx - 1],shape(1),env[myID].gb[Ly-2][Lx - 1],shape(1),0.0,tmp4);
+   Contract(1.0,env[myID].gt(false,Ly-2)[Lx - 1],shape(1),env[myID].gb(false,Ly-2)[Lx - 1],shape(1),0.0,tmp4);
 
-   //reshape tmp to a 2-index array
-   R[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt[Ly-2][Lx - 1].shape(0),env[myID].gb[Ly-2][Lx - 1].shape(0)));
+   RU[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(false,Ly-2)[Lx - 1].shape(0),env[myID].gb(false,Ly-2)[Lx - 1].shape(0)));
+
+   //B: inverse
+   Contract(1.0,env[myID].gt(true,Ly-2)[Lx - 1],shape(1),env[myID].gb(true,Ly-2)[Lx - 1],shape(1),0.0,tmp4);
+
+   RI[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(true,Ly-2)[Lx - 1].shape(0),env[myID].gb(true,Ly-2)[Lx - 1].shape(0)));
 
    //now construct the rest
    for(int col = Lx - 2;col > 0;--col){
 
+      //A: regular
       tmp3.clear();
-      Contract(1.0,env[myID].gt[Ly-2][col],shape(2),R[col],shape(0),0.0,tmp3);
+      Contract(1.0,env[myID].gt(false,Ly-2)[col],shape(2),RU[col],shape(0),0.0,tmp3);
 
-      R[col - 1].clear();
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb[Ly-2][col],shape(1,2),0.0,R[col-1]);
+      RU[col - 1].clear();
+      Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,Ly-2)[col],shape(1,2),0.0,RU[col-1]);
+
+      //B: regular
+      Contract(1.0,env[myID].gt(true,Ly-2)[col],shape(2),RI[col],shape(0),0.0,tmp3);
+
+      RI[col - 1].clear();
+      Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,Ly-2)[col],shape(1,2),0.0,RI[col-1]);
 
    }
 
    //construct the left going operators on the first top site
 
-   //unity
+   //A: regular
    tmp5.clear();
-   Contract(1.0,env[myID].gU(false)(Ly-1,0),shape(2),env[myID].gb[Ly-2][0],shape(1),0.0,tmp5);
+   Contract(1.0,env[myID].gU(false)(Ly-1,0),shape(2),env[myID].gb(false,Ly-2)[0],shape(1),0.0,tmp5);
 
-   LU = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb[Ly-2][0].shape(2)));
+   LUU = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
 
-   tmp_over = Dot(LU,R[0]);
+   //overlap part A
+   tmp_over = Dot(LUU,RU[0]);
 
-   //inverse if it contributes
+   //B: inverse
+   tmp5.clear();
+   Contract(1.0,env[myID].gU(true)(Ly-1,0),shape(2),env[myID].gb(true,Ly-2)[0],shape(1),0.0,tmp5);
+
+   LII = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
+
+   //overlap part B
+   tmp_over += Dot(LII,RI[0]);
+
+   //LUI and LIU if they contribute
    if( (*this)[(Ly - 1)*Lx] != (*this)[(Ly - 1)*Lx + 1]){
 
-      tmp5.clear();
-      Contract(1.0,env[myID].gU(true)(Ly-1,0),shape(2),env[myID].gb[Ly-2][0],shape(1),0.0,tmp5);
+      //A: regular
+      Contract(1.0,env[myID].gU(true)(Ly-1,0),shape(2),env[myID].gb(false,Ly-2)[0],shape(1),0.0,tmp5);
 
-      LI = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,0).shape(3),env[myID].gb[Ly-2][0].shape(2)));
+      LUI = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
+
+      //B: inverse
+      Contract(1.0,env[myID].gU(false)(Ly-1,0),shape(2),env[myID].gb(true,Ly-2)[0],shape(1),0.0,tmp5);
+
+      LIU = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(true,Ly-2)[0].shape(2)));
 
    }
 
@@ -643,67 +667,109 @@ void Walker::calc_EL(){
       //first close down the I term from the previous site for the energy
       if( (*this)[(Ly - 1)*Lx + col - 1] != (*this)[(Ly - 1)*Lx + col]){
 
-         //construct the right intermediate contraction (paste bottom to right)
+         //A: regular
          tmp3.clear();
-         Contract(1.0,env[myID].gb[Ly-2][col],shape(2),R[col],shape(1),0.0,tmp3);
+         Contract(1.0,env[myID].gb(false,Ly-2)[col],shape(2),RU[col],shape(1),0.0,tmp3);
 
-         // 1) paste Sx to the right
+         // 1) paste I to the right
          M = env[myID].gU(true)(Ly-1,col).shape(0);
          N = tmp3.shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(true)(Ly-1,col).data(),K,tmp3.data(),K,0.0,R[col-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(true)(Ly-1,col).data(),K,tmp3.data(),K,0.0,RU[col-1].data(),N);
 
-         //contract with left LI 
-         ward = Dot(LI,R[col - 1]);
+         //expectation A
+         ward = Dot(LUI,RU[col - 1]);
+
+         //B: inverse
+         Contract(1.0,env[myID].gb(true,Ly-2)[col],shape(2),RI[col],shape(1),0.0,tmp3);
+
+         // 1) paste I to the right
+         M = env[myID].gU(false)(Ly-1,col).shape(0);
+         N = tmp3.shape(0);
+         K = tmp3.shape(1) * tmp3.shape(2);
+
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(false)(Ly-1,col).data(),K,tmp3.data(),K,0.0,RI[col-1].data(),N);
+
+         //expectation B
+         ward += Dot(LIU,RI[col - 1]);
+
          nn_over.push_back(ward/tmp_over);
 
          EL -= 0.5 * ward/tmp_over;
 
       }
 
-      //construct left renormalized operators for next site: first paste bottom to Left unity
-      tmp3.clear();
-      Contract(1.0,LU,shape(1),env[myID].gb[Ly-2][col],shape(0),0.0,tmp3);
+      //construct left renormalized operators for next site
 
-      // 1) construct new left unity operator
+      //A regular
+      tmp3.clear();
+      Contract(1.0,LUU,shape(1),env[myID].gb(false,Ly-2)[col],shape(0),0.0,tmp3);
+
+      // 1) construct new LII
       tmp3bis.clear();
       Contract(1.0,env[myID].gU(false)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
 
-      LU = tmp3bis.reshape_clear(shape(env[myID].gU(false)(Ly-1,col).shape(3),env[myID].gb[Ly-2][col].shape(2)));
+      LUU = tmp3bis.reshape_clear(shape(env[myID].gU(false)(Ly-1,col).shape(3),env[myID].gb(false,Ly-2)[col].shape(2)));
 
-      // 2) if it contributes, construct new left LI
+      // 2) if it contributes, construct new left LUI
       if( (*this)[(Ly - 1)*Lx + col] != (*this)[(Ly - 1)*Lx + col + 1]){
 
-         tmp3bis.clear();
          Contract(1.0,env[myID].gU(true)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
 
-         LI = tmp3bis.reshape_clear(shape(env[myID].gU(true)(Ly-1,col).shape(3),env[myID].gb[Ly-2][col].shape(2)));
+         LUI = tmp3bis.reshape_clear(shape(env[myID].gU(true)(Ly-1,col).shape(3),env[myID].gb(false,Ly-2)[col].shape(2)));
 
       }
 
+      //B inverse
+      tmp3.clear();
+      Contract(1.0,LII,shape(1),env[myID].gb(true,Ly-2)[col],shape(0),0.0,tmp3);
+
+      // 1) construct new LII
+      Contract(1.0,env[myID].gU(true)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
+
+      LII = tmp3bis.reshape_clear(shape(env[myID].gU(true)(Ly-1,col).shape(3),env[myID].gb(true,Ly-2)[col].shape(2)));
+
+      // 2) if it contributes, construct new left LIU
+      if( (*this)[(Ly - 1)*Lx + col] != (*this)[(Ly - 1)*Lx + col + 1]){
+
+         Contract(1.0,env[myID].gU(false)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
+
+         LIU = tmp3bis.reshape_clear(shape(env[myID].gU(false)(Ly-1,col).shape(3),env[myID].gb(true,Ly-2)[col].shape(2)));
+
+      }
    }
-   
+
    //finally close down on last top site
 
-   // close down last LI
+   // close down last LUI and LIU
    if( (*this)[(Ly - 1)*Lx + Lx - 2] != (*this)[(Ly - 1)*Lx + Lx - 1]){
 
-      //tmp comes out index (t,b)
+      //A: regular
       tmp5.clear();
-      Contract(1.0,env[myID].gU(true)(Ly-1,Lx-1),shape(2),env[myID].gb[Ly-2][Lx - 1],shape(1),0.0,tmp5);
+      Contract(1.0,env[myID].gU(true)(Ly-1,Lx-1),shape(2),env[myID].gb(false,Ly-2)[Lx - 1],shape(1),0.0,tmp5);
 
       //reshape tmp to a 2-index array
-      R[Lx - 2] = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,Lx-1).shape(0),env[myID].gb[Ly-2][Lx - 1].shape(0)));
+      RU[Lx - 2] = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,Lx-1).shape(0),env[myID].gb(false,Ly-2)[Lx - 1].shape(0)));
 
-      //energy
-      ward =  Dot(LI,R[Lx-2]);
+      //energy from A part
+      ward = Dot(LUI,RU[Lx-2]);
+
+      //B: inverse
+      tmp5.clear();
+      Contract(1.0,env[myID].gU(false)(Ly-1,Lx-1),shape(2),env[myID].gb(true,Ly-2)[Lx - 1],shape(1),0.0,tmp5);
+
+      //reshape tmp to a 2-index array
+      RI[Lx - 2] = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,Lx-1).shape(0),env[myID].gb(true,Ly-2)[Lx - 1].shape(0)));
+
+      //energy from B part
+      ward += Dot(LIU,RI[Lx-2]);
+
       nn_over.push_back(ward/tmp_over);
 
       EL -= 0.5 * ward/tmp_over;
 
    }
-
 
    // #################################################################
    // ### ----      Horizontal Sz contribution is easy         ---- ### 
@@ -726,6 +792,8 @@ void Walker::calc_EL(){
 
    EL += 0.25 * cnt;
 
+cout << EL << endl;
+/*
    // #################################################################
    // ### ---- from left to right: contract in mps/mpo fashion ---- ### 
    // #################################################################
@@ -1116,5 +1184,5 @@ void Walker::calc_EL(){
    }
 
    EL += 0.25 * cnt;
-*/
+   */
 }
