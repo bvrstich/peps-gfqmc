@@ -119,16 +119,6 @@ void GFMC::walk(const int n_steps){
 
       }
 
-      if(step % 1000 == 0){
-
-         char walker_file[200];
-         sprintf(walker_file,"output/%dx%d/D=%d.walk",Lx,Ly,DT);
-
-         dump(walker_file);
-
-      }
-
-
 #ifdef _DEBUG
       cout << endl;
       cout << "Minimal Energy:\t" << min_en << endl;
@@ -159,6 +149,7 @@ double GFMC::propagate(){
       //construct distribution
       dist[myID].construct(walker[i],dtau,0.0);
       dist[myID].check_negative();
+
       double nrm = dist[myID].normalize();
 
       //draw new walker

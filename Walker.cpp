@@ -206,18 +206,13 @@ void Walker::calc_EL(){
    DArray<4> tmp4;
    DArray<3> tmp3;
    DArray<3> tmp3bis;
+   DArray<5> tmp5;
 
-   //tmp comes out index (t,b): U
-   Contract(1.0,env[myID].gt(false,0)[Lx - 1],shape(1),env[myID].gb(false,0)[Lx - 1],shape(1),0.0,tmp4);
+   //A: regular
+   Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gt(false,0)[Lx - 1],env[myID].gb(false,0)[Lx - 1],0.0,RU[Lx - 2]);
 
-   //reshape tmp to a 2-index array
-   RU[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(false,0)[Lx - 1].shape(0),env[myID].gb(false,0)[Lx - 1].shape(0)));
-
-   //inverse
-   Contract(1.0,env[myID].gt(true,0)[Lx - 1],shape(1),env[myID].gb(true,0)[Lx - 1],shape(1),0.0,tmp4);
-
-   //reshape tmp to a 2-index array
-   RI[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(true,0)[Lx - 1].shape(0),env[myID].gb(true,0)[Lx - 1].shape(0)));
+   //B: inverse
+   Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gt(true,0)[Lx - 1],env[myID].gb(true,0)[Lx - 1],0.0,RI[Lx - 2]);
 
    //now construct the rest
    for(int col = Lx - 2;col > 0;--col){
@@ -225,12 +220,12 @@ void Walker::calc_EL(){
       tmp3.clear();
 
       //U
-      Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,0)[col],shape(1,2),0.0,RU[col-1]);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gt(false,0)[col],RU[col],0.0,tmp3);
+      Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gb(false,0)[col],0.0,RU[col - 1]);
 
       //I
-      Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,0)[col],shape(1,2),0.0,RI[col-1]);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gt(true,0)[col],RI[col],0.0,tmp3);
+      Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gb(true,0)[col],0.0,RI[col - 1]);
 
    }
 
@@ -241,15 +236,11 @@ void Walker::calc_EL(){
    DArray<2> LIU;
    DArray<2> LII;
 
-   TArray<double,5> tmp5;
-
    //U overlap
-   Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
-   LUU = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+   Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(false,0)[0],env[myID].gb(false,0)[0],0.0,LUU);
 
    //I overlap
-   Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
-   LII = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
+   Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(true,0)[0],env[myID].gb(true,0)[0],0.0,LII);
 
    //calculate the overlap with this state
    double tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
@@ -259,16 +250,11 @@ void Walker::calc_EL(){
    //only calculate LUI and LIU if it contributes
    if( (*this)[0] != (*this)[1] ){
 
-      //regular
-      Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
-      LUI = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
-
-      //inverse
-      Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
-      LIU = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(false,0)[0],env[myID].gb(true,0)[0],0.0,LUI); //regular
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(true,0)[0],env[myID].gb(false,0)[0],0.0,LIU); //inverse
 
    }
-  
+/
    //now for the middle terms
    for(int col = 1;col < Lx - 1;++col){
 
@@ -281,12 +267,8 @@ void Walker::calc_EL(){
          tmp3.clear();
          Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
 
-         // 1) paste I to the right
-         M = tmp3.shape(0);
-         N = env[myID].gU(true)(0,col).shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
-
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(true)(0,col).data(),K,0.0,RU[col-1].data(),N);
+         //paste I to the right
+         Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,0)[col],shape(1,2),0.0,RU[col - 1]);
 
          ward = Dot(LUI,RU[col - 1]);
 
@@ -295,12 +277,8 @@ void Walker::calc_EL(){
          //construct the right intermediate contraction (paste top to right)
          Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
 
-         // 1) paste U to the right
-         M = tmp3.shape(0);
-         N = env[myID].gU(false)(0,col).shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
-
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(false)(0,col).data(),K,0.0,RI[col-1].data(),N);
+         //paste U to the right
+         Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,0)[col],shape(1,2),0.0,RI[col - 1]);
 
          ward += Dot(LIU,RI[col - 1]);
 
@@ -318,10 +296,8 @@ void Walker::calc_EL(){
       Contract(1.0,LUU,shape(0),env[myID].gt(false,0)[col],shape(0),0.0,tmp3);
 
       //1) construct new unity on the left
-      tmp3bis.clear();
-      Contract(1.0,tmp3,shape(0,1),env[myID].gU(false)(0,col),shape(0,1),0.0,tmp3bis);
-
-      LUU = tmp3bis.reshape_clear(shape(env[myID].gt(false,0)[col].shape(2),env[myID].gU(false)(0,col).shape(3)));
+      LUU.clear();
+      Contract(1.0,tmp3,shape(0,1),env[myID].gb(false,0)[col],shape(1,2),0.0,LUU);
 
       //2) if it contributes, calculate inverse on the left
       if((*this)[col] != (*this)[col + 1]){
@@ -684,11 +660,7 @@ void Walker::calc_EL(){
          //B: inverse
          Contract(1.0,env[myID].gb(true,Ly-2)[col],shape(2),RI[col],shape(1),0.0,tmp3);
 
-         // 1) paste I to the right
-         M = env[myID].gU(false)(Ly-1,col).shape(0);
-         N = tmp3.shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
-
+         // 1) paste U to the right
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(false)(Ly-1,col).data(),K,tmp3.data(),K,0.0,RI[col-1].data(),N);
 
          //expectation B
@@ -795,140 +767,101 @@ void Walker::calc_EL(){
    // #################################################################
    // ### ---- from left to right: contract in mps/mpo fashion ---- ### 
    // #################################################################
-/*
-   // ---- || evaluate the expectation values in an MPO/MPS manner, first from bottom to top, then left to right || ----
-   double ward;
 
-   EL = 0.0;
+   //construct the left and right (vertical) environment layers
+   env[myID].calc('V',false);
+   env[myID].calc('V',true);
 
-   int M,N,K;
+   // -- (1) -- || right column: similar to overlap calculation
 
-   nn_over.clear();
+   //A: regular
+   Contract(1.0,env[myID].gl(false,Lx - 2)[Ly - 1],shape(1),env[myID].gr(false,Lx - 2)[Ly - 1],shape(1),0.0,tmp4);
 
-   //calculate the single layer contractions first:
-   env[myID].sU(false,peps,*this);
-   env[myID].sU(true,peps,*this);
+   RU[Ly - 2] = tmp4.reshape_clear(shape(env[myID].gl(false,Lx - 2)[Ly - 1].shape(0),env[myID].gr(false,Lx - 2)[Ly - 1].shape(0)));
 
-   //first construct the top and bottom (horizontal) environment layers
-   env[myID].calc('H',false);
-   env[myID].calc('H',true);
+   //B: inverse
+   Contract(1.0,env[myID].gl(true,Lx - 2)[Ly - 1],shape(1),env[myID].gr(true,Lx - 2)[Ly - 1],shape(1),0.0,tmp4);
 
-   // #################################################################
-   // ### ---- from bottom to top: contract in mps/mpo fashion ---- ### 
-   // #################################################################
-
-   // -- (1) -- || bottom row: similar to overlap calculation
-
-   //first construct the right renormalized operators: direct and inverse
-   vector< DArray<2> > RU(Lx - 1);
-   vector< DArray<2> > RI(Lx - 1);
-
-   //first the rightmost operator
-   DArray<4> tmp4;
-   DArray<3> tmp3;
-   DArray<3> tmp3bis;
-
-   //tmp comes out index (t,b): U
-   Contract(1.0,env[myID].gt(false,0)[Lx - 1],shape(1),env[myID].gb(false,0)[Lx - 1],shape(1),0.0,tmp4);
-
-   //reshape tmp to a 2-index array
-   RU[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(false,0)[Lx - 1].shape(0),env[myID].gb(false,0)[Lx - 1].shape(0)));
-
-   //inverse
-   Contract(1.0,env[myID].gt(true,0)[Lx - 1],shape(1),env[myID].gb(true,0)[Lx - 1],shape(1),0.0,tmp4);
-
-   //reshape tmp to a 2-index array
-   RI[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(true,0)[Lx - 1].shape(0),env[myID].gb(true,0)[Lx - 1].shape(0)));
+   RI[Ly - 2] = tmp4.reshape_clear(shape(env[myID].gl(true,Lx - 2)[Ly - 1].shape(0),env[myID].gr(true,Lx - 2)[Ly - 1].shape(0)));
 
    //now construct the rest
-   for(int col = Lx - 2;col > 0;--col){
+   for(int row = Ly - 2;row > 0;--row){
 
       tmp3.clear();
 
       //U
-      Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,0)[col],shape(1,2),0.0,RU[col-1]);
+      Contract(1.0,env[myID].gl(false,Lx - 2)[row],shape(2),RU[row],shape(0),0.0,tmp3);
+      Contract(1.0,tmp3,shape(1,2),env[myID].gr(false,Lx - 2)[row],shape(1,2),0.0,RU[row-1]);
 
       //I
-      Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,0)[col],shape(1,2),0.0,RI[col-1]);
+      Contract(1.0,env[myID].gl(true,Lx - 2)[row],shape(2),RI[row],shape(0),0.0,tmp3);
+      Contract(1.0,tmp3,shape(1,2),env[myID].gr(true,Lx - 2)[row],shape(1,2),0.0,RI[row-1]);
 
    }
 
    //4 left going operators: S+/- and 1
-   DArray<2> LUU;
-   DArray<2> LUI;
-
-   DArray<2> LIU;
-   DArray<2> LII;
-
-   TArray<double,5> tmp5;
 
    //U overlap
-   Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
-   LUU = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+   Contract(1.0,env[myID].gl(false,Lx - 2)[0],shape(1),env[myID].gU(false)(0,Lx - 1),shape(0),0.0,tmp5);
+   LUU = tmp5.reshape_clear( shape(env[myID].gt(false,Lx - 2)[0].shape(2),env[myID].gU(false)(0,Lx - 1).shape(1)) );
 
    //I overlap
-   Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
-   LII = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
+   Contract(1.0,env[myID].gl(true,Lx - 2)[0],shape(1),env[myID].gU(true)(0,Lx - 1),shape(0),0.0,tmp5);
+   LII = tmp5.reshape_clear( shape(env[myID].gt(true,Lx - 2)[0].shape(2),env[myID].gU(true)(0,Lx - 1).shape(1)) );
 
    //calculate the overlap with this state
-   double tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
+   tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
 
    nn_over.push_back(1.0);
 
    //only calculate LUI and LIU if it contributes
-   if( (*this)[0] != (*this)[1] ){
+   if( (*this)[Lx - 1] != (*this)[2*Lx - 1] ){
 
       //regular
-      Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
-      LUI = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
+      Contract(1.0,env[myID].gl(false,Lx - 2)[0],shape(1),env[myID].gU(true)(0,Lx - 1),shape(0),0.0,tmp5);
+      LUI = tmp5.reshape_clear( shape(env[myID].gt(false,Lx - 2)[0].shape(2),env[myID].gU(true)(0,Lx - 1).shape(1)) );
 
       //inverse
-      Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
-      LIU = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+      Contract(1.0,env[myID].gl(true,Lx - 2)[0],shape(1),env[myID].gU(false)(0,Lx - 1),shape(0),0.0,tmp5);
+      LIU = tmp5.reshape_clear( shape(env[myID].gt(true,Lx - 2)[0].shape(2),env[myID].gU(false)(0,Lx - 1).shape(1)) );
 
    }
-  
+
    //now for the middle terms
-   for(int col = 1;col < Lx - 1;++col){
+   for(int row = 1;row < Ly - 1;++row){
 
       //only calculate if it contributes
-      if( (*this)[col - 1] != (*this)[col] ){
+      if( (*this)[(row - 1)*Lx + Lx - 1] != (*this)[row*Lx + Lx - 1] ){
 
          // A: regular
 
          //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
+         Contract(1.0,env[myID].gl(false,Lx - 2)[col],shape(2),RU[row],shape(0),0.0,tmp3);
 
          // 1) paste I to the right
          M = tmp3.shape(0);
-         N = env[myID].gU(true)(0,col).shape(0);
+         N = env[myID].gU(true)(row,Lx - 1).shape(2);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(true)(0,col).data(),K,0.0,RU[col-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(true)(row,Lx - 1).data(),N,0.0,RU[row-1].data(),N);
 
-         ward = Dot(LUI,RU[col - 1]);
+         ward = Dot(LUI,RU[row - 1]);
 
          // B: inverse
 
          //construct the right intermediate contraction (paste top to right)
-         Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
+         Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[row],shape(0),0.0,tmp3);
 
          // 1) paste U to the right
-         M = tmp3.shape(0);
-         N = env[myID].gU(false)(0,col).shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(false)(row,Lx - 1).data(),N,0.0,RI[row-1].data(),N);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(false)(0,col).data(),K,0.0,RI[col-1].data(),N);
-
-         ward += Dot(LIU,RI[col - 1]);
+         ward += Dot(LIU,RI[row - 1]);
 
          nn_over.push_back(ward/tmp_over);
 
          //contract with left LI 
-         EL -= 0.5 * ward /tmp_over;
+         EL -= 0.5 * ward / tmp_over;
 
       }
 
