@@ -205,8 +205,6 @@ void Walker::calc_EL(){
    //first the rightmost operator
    DArray<4> tmp4;
    DArray<3> tmp3;
-   DArray<3> tmp3bis;
-   DArray<5> tmp5;
 
    //A: regular
    Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gt(false,0)[Lx - 1],env[myID].gb(false,0)[Lx - 1],0.0,RU[Lx - 2]);
@@ -341,8 +339,7 @@ void Walker::calc_EL(){
       EL -= 0.5 * ward/tmp_over;
 
    }
-   cout << EL << endl;
-/*
+
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators
@@ -356,15 +353,18 @@ void Walker::calc_EL(){
    TArray<double,3> LOIU;
    TArray<double,3> LOII;
 
-   for(int row = 1;row < Ly - 1;++row){
-
+   DArray<5> tmp5;
+   DArray<6> tmp6;
+/*
+//   for(int row = 1;row < Ly - 1;++row){
+int row = 1;
       //first create right renormalized operators
 
       //A: regular
       tmp5.clear();
       Contract(1.0,env[myID].gt(false,row)[Lx - 1],shape(1),env[myID].gU(false)(row,Lx-1),shape(1),0.0,tmp5);
 
-      TArray<double,6> tmp6;
+      tmp6.clear();
       Contract(1.0,tmp5,shape(3),env[myID].gb(false,row-1)[Lx-1],shape(1),0.0,tmp6);
 
       ROU[Lx - 2] = tmp6.reshape_clear(shape(env[myID].gt(false,row)[Lx - 1].shape(0),env[myID].gU(false)(row,Lx-1).shape(0),env[myID].gb(false,row-1)[Lx - 1].shape(0)));
@@ -560,7 +560,7 @@ void Walker::calc_EL(){
 
       }
 
-   }
+   //}
 
    // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
