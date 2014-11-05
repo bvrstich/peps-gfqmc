@@ -240,46 +240,69 @@ void Walker::calc_EL(){
 
    DArray<2> LIU;
    DArray<2> LII;
-/*
+
    TArray<double,5> tmp5;
 
-   //tmp comes out index (t,b)
+   //U overlap
    Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
-   LU = tmp5.reshape_clear( shape(env[myID].gt[0][0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+   LUU = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
+
+   //I overlap
+   Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
+   LII = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
 
    //calculate the overlap with this state
-   double tmp_over = Dot(R[0],LU);
+   double tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
 
    nn_over.push_back(1.0);
 
-   //only calculate LI if it contributes
+   //only calculate LUI and LIU if it contributes
    if( (*this)[0] != (*this)[1] ){
 
-      //tmp comes out index (t,b)
-      Contract(1.0,env[myID].gt[0][0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
+      //regular
+      Contract(1.0,env[myID].gt(false,0)[0],shape(1),env[myID].gU(true)(0,0),shape(1),0.0,tmp5);
+      LUI = tmp5.reshape_clear( shape(env[myID].gt(false,0)[0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
 
-      LI = tmp5.reshape_clear( shape(env[myID].gt[0][0].shape(2),env[myID].gU(true)(0,0).shape(3)) );
+      //inverse
+      Contract(1.0,env[myID].gt(true,0)[0],shape(1),env[myID].gU(false)(0,0),shape(1),0.0,tmp5);
+      LIU = tmp5.reshape_clear( shape(env[myID].gt(true,0)[0].shape(2),env[myID].gU(false)(0,0).shape(3)) );
 
    }
-   
+  
    //now for the middle terms
    for(int col = 1;col < Lx - 1;++col){
 
       //only calculate if it contributes
       if( (*this)[col - 1] != (*this)[col] ){
 
+         // A: regular
+
          //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,env[myID].gt[0][col],shape(2),R[col],shape(0),0.0,tmp3);
+         Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
 
          // 1) paste I to the right
          M = tmp3.shape(0);
          N = env[myID].gU(true)(0,col).shape(0);
          K = tmp3.shape(1) * tmp3.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(true)(0,col).data(),K,0.0,R[col-1].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(true)(0,col).data(),K,0.0,RU[col-1].data(),N);
 
-         ward = Dot(LI,R[col - 1]);
+         ward = Dot(LUI,RU[col - 1]);
+
+         // B: inverse
+
+         //construct the right intermediate contraction (paste top to right)
+         Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
+
+         // 1) paste U to the right
+         M = tmp3.shape(0);
+         N = env[myID].gU(false)(0,col).shape(0);
+         K = tmp3.shape(1) * tmp3.shape(2);
+
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,env[myID].gU(false)(0,col).data(),K,0.0,RI[col-1].data(),N);
+
+         ward += Dot(LIU,RI[col - 1]);
 
          nn_over.push_back(ward/tmp_over);
 
@@ -288,42 +311,71 @@ void Walker::calc_EL(){
 
       }
 
-      //construct left renormalized operators for next site: first paste top to Left unity
+      //construct left renormalized operators for next site:
+      
+      //A: regular 
       tmp3.clear();
-      Contract(1.0,LU,shape(0),env[myID].gt[0][col],shape(0),0.0,tmp3);
+      Contract(1.0,LUU,shape(0),env[myID].gt(false,0)[col],shape(0),0.0,tmp3);
 
       //1) construct new unity on the left
       tmp3bis.clear();
       Contract(1.0,tmp3,shape(0,1),env[myID].gU(false)(0,col),shape(0,1),0.0,tmp3bis);
 
-      LU = tmp3bis.reshape_clear(shape(env[myID].gt[0][col].shape(2),env[myID].gU(false)(0,col).shape(3)));
+      LUU = tmp3bis.reshape_clear(shape(env[myID].gt(false,0)[col].shape(2),env[myID].gU(false)(0,col).shape(3)));
 
       //2) if it contributes, calculate inverse on the left
       if((*this)[col] != (*this)[col + 1]){
 
-         tmp3bis.clear();
          Contract(1.0,tmp3,shape(0,1),env[myID].gU(true)(0,col),shape(0,1),0.0,tmp3bis);
 
-         LI = tmp3bis.reshape_clear(shape(env[myID].gt[0][col].shape(2),env[myID].gU(true)(0,col).shape(3)));
+         LUI = tmp3bis.reshape_clear(shape(env[myID].gt(false,0)[col].shape(2),env[myID].gU(true)(0,col).shape(3)));
+
+      }
+ 
+      //B: inverse 
+      Contract(1.0,LII,shape(0),env[myID].gt(true,0)[col],shape(0),0.0,tmp3);
+
+      //1) construct new inverse on the left
+      Contract(1.0,tmp3,shape(0,1),env[myID].gU(true)(0,col),shape(0,1),0.0,tmp3bis);
+
+      LII = tmp3bis.reshape_clear(shape(env[myID].gt(true,0)[col].shape(2),env[myID].gU(true)(0,col).shape(3)));
+
+      //2) if it contributes, calculate LIU
+      if((*this)[col] != (*this)[col + 1]){
+
+         Contract(1.0,tmp3,shape(0,1),env[myID].gU(false)(0,col),shape(0,1),0.0,tmp3bis);
+
+         LIU = tmp3bis.reshape_clear(shape(env[myID].gt(true,0)[col].shape(2),env[myID].gU(false)(0,col).shape(3)));
 
       }
 
    }
 
-   //last site of bottom row: close down LI
+   //last site of bottom row: close down LUI and LIU
    if((*this)[Lx - 2] != (*this)[Lx - 1]){
 
-      Contract(1.0,env[myID].gt[0][Lx-1],shape(1),env[myID].gU(true)(0,Lx-1),shape(1),0.0,tmp5);
+      //A: regular LUI
+      Contract(1.0,env[myID].gt(false,0)[Lx-1],shape(1),env[myID].gU(true)(0,Lx-1),shape(1),0.0,tmp5);
 
-      R[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt[0][Lx-1].shape(0),env[myID].gU(true)(0,Lx-1).shape(0)));
+      RU[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt(false,0)[Lx-1].shape(0),env[myID].gU(true)(0,Lx-1).shape(0)));
 
-      ward = Dot(LI,R[Lx-2]);
+      ward = Dot(LUI,RU[Lx-2]);
+
+       //B: inverse LIU
+      Contract(1.0,env[myID].gt(true,0)[Lx-1],shape(1),env[myID].gU(false)(0,Lx-1),shape(1),0.0,tmp5);
+
+      RI[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt(true,0)[Lx-1].shape(0),env[myID].gU(false)(0,Lx-1).shape(0)));
+
+      ward += Dot(LIU,RI[Lx-2]);
+      
       nn_over.push_back(ward/tmp_over);
 
       EL -= 0.5 * ward/tmp_over;
 
    }
 
+   cout << EL << endl;
+/*
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators
