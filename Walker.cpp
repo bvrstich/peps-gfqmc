@@ -254,7 +254,7 @@ void Walker::calc_EL(){
       Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(true,0)[0],env[myID].gb(false,0)[0],0.0,LIU); //inverse
 
    }
-/
+
    //now for the middle terms
    for(int col = 1;col < Lx - 1;++col){
 
@@ -265,20 +265,19 @@ void Walker::calc_EL(){
 
          //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,env[myID].gt(false,0)[col],shape(2),RU[col],shape(0),0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gt(false,0)[col],RU[col],0.0,tmp3);
 
          //paste I to the right
-         Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,0)[col],shape(1,2),0.0,RU[col - 1]);
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gb(true,0)[col],0.0,RU[col - 1]);
 
          ward = Dot(LUI,RU[col - 1]);
 
          // B: inverse
+         tmp3.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gt(true,0)[col],RI[col],0.0,tmp3);
 
-         //construct the right intermediate contraction (paste top to right)
-         Contract(1.0,env[myID].gt(true,0)[col],shape(2),RI[col],shape(0),0.0,tmp3);
-
-         //paste U to the right
-         Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,0)[col],shape(1,2),0.0,RI[col - 1]);
+         //paste I to the right
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gb(false,0)[col],0.0,RI[col - 1]);
 
          ward += Dot(LIU,RI[col - 1]);
 
@@ -290,38 +289,35 @@ void Walker::calc_EL(){
       }
 
       //construct left renormalized operators for next site:
-      
+
       //A: regular 
       tmp3.clear();
-      Contract(1.0,LUU,shape(0),env[myID].gt(false,0)[col],shape(0),0.0,tmp3);
+      Gemm(CblasTrans,CblasNoTrans,1.0,LUU,env[myID].gt(false,0)[col],0.0,tmp3);
 
       //1) construct new unity on the left
       LUU.clear();
-      Contract(1.0,tmp3,shape(0,1),env[myID].gb(false,0)[col],shape(1,2),0.0,LUU);
+      Gemm(CblasTrans,CblasNoTrans,1.0,tmp3,env[myID].gb(false,0)[col],0.0,LUU);
 
       //2) if it contributes, calculate inverse on the left
       if((*this)[col] != (*this)[col + 1]){
 
-         Contract(1.0,tmp3,shape(0,1),env[myID].gU(true)(0,col),shape(0,1),0.0,tmp3bis);
-
-         LUI = tmp3bis.reshape_clear(shape(env[myID].gt(false,0)[col].shape(2),env[myID].gU(true)(0,col).shape(3)));
+         LUI.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,tmp3,env[myID].gb(true,0)[col],0.0,LUI);
 
       }
- 
+
       //B: inverse 
-      Contract(1.0,LII,shape(0),env[myID].gt(true,0)[col],shape(0),0.0,tmp3);
+      Gemm(CblasTrans,CblasNoTrans,1.0,LII,env[myID].gt(true,0)[col],0.0,tmp3);
 
-      //1) construct new inverse on the left
-      Contract(1.0,tmp3,shape(0,1),env[myID].gU(true)(0,col),shape(0,1),0.0,tmp3bis);
+      //1) construct new unity on the left
+      LII.clear();
+      Gemm(CblasTrans,CblasNoTrans,1.0,tmp3,env[myID].gb(true,0)[col],0.0,LII);
 
-      LII = tmp3bis.reshape_clear(shape(env[myID].gt(true,0)[col].shape(2),env[myID].gU(true)(0,col).shape(3)));
-
-      //2) if it contributes, calculate LIU
+      //2) if it contributes, calculate inverse on the left
       if((*this)[col] != (*this)[col + 1]){
 
-         Contract(1.0,tmp3,shape(0,1),env[myID].gU(false)(0,col),shape(0,1),0.0,tmp3bis);
-
-         LIU = tmp3bis.reshape_clear(shape(env[myID].gt(true,0)[col].shape(2),env[myID].gU(false)(0,col).shape(3)));
+         LIU.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,tmp3,env[myID].gb(false,0)[col],0.0,LIU);
 
       }
 
@@ -331,25 +327,22 @@ void Walker::calc_EL(){
    if((*this)[Lx - 2] != (*this)[Lx - 1]){
 
       //A: regular LUI
-      Contract(1.0,env[myID].gt(false,0)[Lx-1],shape(1),env[myID].gU(true)(0,Lx-1),shape(1),0.0,tmp5);
-
-      RU[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt(false,0)[Lx-1].shape(0),env[myID].gU(true)(0,Lx-1).shape(0)));
+      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gt(false,0)[Lx-1],env[myID].gb(true,0)[Lx-1],0.0,RU[Lx - 2]);
 
       ward = Dot(LUI,RU[Lx-2]);
 
-       //B: inverse LIU
-      Contract(1.0,env[myID].gt(true,0)[Lx-1],shape(1),env[myID].gU(false)(0,Lx-1),shape(1),0.0,tmp5);
-
-      RI[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt(true,0)[Lx-1].shape(0),env[myID].gU(false)(0,Lx-1).shape(0)));
+      //B: inverse LIU
+      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gt(true,0)[Lx-1],env[myID].gb(false,0)[Lx-1],0.0,RI[Lx - 2]);
 
       ward += Dot(LIU,RI[Lx-2]);
-      
+
       nn_over.push_back(ward/tmp_over);
 
       EL -= 0.5 * ward/tmp_over;
 
    }
-
+   cout << EL << endl;
+/*
    // -- (2) -- now move from bottom to top calculating everything like an MPO/MPS expectation value
 
    //Right renormalized operators
@@ -866,7 +859,7 @@ void Walker::calc_EL(){
       }
 
       //construct left renormalized operators for next site:
-      
+
       //A: regular 
       tmp3.clear();
       Contract(1.0,LUU,shape(0),env[myID].gt(false,0)[col],shape(0),0.0,tmp3);
@@ -885,7 +878,7 @@ void Walker::calc_EL(){
          LUI = tmp3bis.reshape_clear(shape(env[myID].gt(false,0)[col].shape(2),env[myID].gU(true)(0,col).shape(3)));
 
       }
- 
+
       //B: inverse 
       Contract(1.0,LII,shape(0),env[myID].gt(true,0)[col],shape(0),0.0,tmp3);
 
@@ -915,13 +908,13 @@ void Walker::calc_EL(){
 
       ward = Dot(LUI,RU[Lx-2]);
 
-       //B: inverse LIU
+      //B: inverse LIU
       Contract(1.0,env[myID].gt(true,0)[Lx-1],shape(1),env[myID].gU(false)(0,Lx-1),shape(1),0.0,tmp5);
 
       RI[Lx-2] = tmp5.reshape_clear(shape(env[myID].gt(true,0)[Lx-1].shape(0),env[myID].gU(false)(0,Lx-1).shape(0)));
 
       ward += Dot(LIU,RI[Lx-2]);
-      
+
       nn_over.push_back(ward/tmp_over);
 
       EL -= 0.5 * ward/tmp_over;
