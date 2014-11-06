@@ -34,6 +34,8 @@ int main(int argc,char *argv[]){
    global::env[0].sU(false,global::peps,walker);
    global::env[0].calc('H',false);
 
+   global::env[0].test(false);
+
    /*
    walker.calc_EL();
 
