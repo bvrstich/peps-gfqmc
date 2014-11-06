@@ -173,8 +173,7 @@ void Environment::calc(const char dir,bool inverse){
       //bottom 
       b[inverse * (Ly - 1)].fill('b',U[inverse]);
 
-      //for(int i = 1;i < Ly - 1;++i)
-         int i = 1;
+      for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,inverse);
 
       //top
@@ -500,9 +499,12 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          Geqrf(b[rc + inverse * (Ly - 1)][0],tmp2);
 
          //construct new left operator
+         tmp3.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,U[inverse](rc,0),b[rc + inverse * (Ly - 1)][0],0.0,tmp3);
+
          M = b[rc - 1 + inverse * (Ly - 1)][0].shape(2);
          N = tmp3.shape(1) * tmp3.shape(2);
-         K = b[rc - 1 + inverse * (Ly - 1)][0].shape(0) * b[rc - 1 + inverse * (Ly - 1)][0].shape(1);
+         K = tmp3.shape(0);
 
          R[0].resize(shape(b[rc - 1 + inverse * (Ly - 1)][0].shape(2),tmp3.shape(1),tmp3.shape(2)));
          blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, b[rc - 1 + inverse * (Ly - 1)][0].data(),M,tmp3.data(),N,0.0,R[0].data(),N);
