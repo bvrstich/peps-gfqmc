@@ -31,10 +31,11 @@ int main(int argc,char *argv[]){
    Walker walker;
 
    //calculate the single layer contractions first:
-   global::env[0].sU(true,global::peps,walker);
-   global::env[0].calc('H',true);
+   global::env[0].sU(false,global::peps,walker);
+   global::env[0].calc('H',false);
+   global::env[0].calc('V',false);
 
-   global::env[0].test(true);
+   global::env[0].test(false);
 
    /*
    walker.calc_EL();

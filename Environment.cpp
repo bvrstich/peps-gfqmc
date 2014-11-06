@@ -645,26 +645,27 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
       while(iter < comp_sweeps){
 
          //now start sweeping to get the compressed boundary MPS
-         tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,t[rc + 1 + inverse*(Ly - 1)][0],R[0],0.0,tmp4);
+         tmp3.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,t[rc + 1 + inverse*(Ly - 1)][0],U[inverse](rc + 1,0),0.0,tmp3);
 
-         tmp4bis.clear();
-         Contract(1.0,U[inverse](rc + 1,0),shape(1,3),tmp4,shape(1,2),0.0,tmp4bis);
+         DArray<3> tmp3bis;
+         Permute(tmp3,shape(0,2,1),tmp3bis);
 
-         t[rc + inverse*(Ly - 1)][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
+         M = tmp3bis.shape(2);
+         N = R[0].shape(2);
+         K = tmp3bis.shape(0) * tmp3bis.shape(1);
+
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, tmp3bis.data(),M,R[0].data(),N,0.0,t[rc + inverse*(Ly - 1)][0].data(),N);
 
          //QR
          DArray<2> tmp2;
          Geqrf(t[rc + inverse*(Ly - 1)][0],tmp2);
 
-         //construct new left operator
-         DArray<5> tmp5;
-         Contract(1.0,t[rc+1 + inverse*(Ly - 1)][0],shape(1),U[inverse](rc+1,0),shape(1),0.0,tmp5);
+         M = tmp3bis.shape(0) * tmp3bis.shape(1);
+         N = t[rc + inverse*(Ly - 1)][0].shape(2);
+         K = tmp3bis.shape(2);
 
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(3),t[rc + inverse*(Ly - 1)][0],shape(1),0.0,tmp6);
-
-         R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(3),tmp6.shape(5)));
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, tmp3bis.data(),K,t[rc + inverse*(Ly - 1)][0].data(),N,0.0,R[0].data(),N);
 
          //now for the rest of the rightgoing sweep.
          for(int i = 1;i < Lx-1;++i){
