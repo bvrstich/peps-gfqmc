@@ -482,120 +482,110 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
       //while(iter < comp_sweeps){
 
-         //now start sweeping to get the compressed boundary MPS
-         tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc - 1 + inverse * (Ly - 1)][0],R[0],0.0,tmp4);
+      //now start sweeping to get the compressed boundary MPS
+      tmp4.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc - 1 + inverse * (Ly - 1)][0],R[0],0.0,tmp4);
 
-         tmp4bis.clear();
-         Permute(tmp4,shape(1,2,0,3),tmp4bis);
+      tmp4bis.clear();
+      Permute(tmp4,shape(1,2,0,3),tmp4bis);
 
-         M = U[inverse](rc,0).shape(0) * U[inverse](rc,0).shape(1);
-         N = tmp4bis.shape(2) * tmp4bis.shape(3);
-         K = U[inverse](rc,0).shape(2) * U[inverse](rc,0).shape(3);
+      M = U[inverse](rc,0).shape(0) * U[inverse](rc,0).shape(1);
+      N = tmp4bis.shape(2) * tmp4bis.shape(3);
+      K = U[inverse](rc,0).shape(2) * U[inverse](rc,0).shape(3);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, U[inverse](rc,0).data(),K,tmp4bis.data(),N,0.0,b[rc + inverse * (Ly - 1)][0].data(),N);
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0, U[inverse](rc,0).data(),K,tmp4bis.data(),N,0.0,b[rc + inverse * (Ly - 1)][0].data(),N);
 
-         //QR
-         DArray<2> tmp2;
-         Geqrf(b[rc + inverse * (Ly - 1)][0],tmp2);
+      //QR
+      DArray<2> tmp2;
+      Geqrf(b[rc + inverse * (Ly - 1)][0],tmp2);
 
-         //construct new left operator
-         DArray<5> tmp5;
-         Contract(1.0,b[rc-1 + inverse * (Ly - 1)][0],shape(1),U[inverse](rc,0),shape(2),0.0,tmp5);
+      //construct new left operator
+      M = b[rc - 1 + inverse * (Ly - 1)][0].shape(2);
+      N = tmp3.shape(1) * tmp3.shape(2);
+      K = b[rc - 1 + inverse * (Ly - 1)][0].shape(0) * b[rc - 1 + inverse * (Ly - 1)][0].shape(1);
 
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][0],shape(1),0.0,tmp6);
+      R[0].resize(shape(b[rc - 1 + inverse * (Ly - 1)][0].shape(2),tmp3.shape(1),tmp3.shape(2)));
+      blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, b[rc - 1 + inverse * (Ly - 1)][0].data(),M,tmp3.data(),N,0.0,R[0].data(),N);
+      
+      //now for the rest of the rightgoing sweep.
+//      for(int i = 1;i < Lx-1;++i){
+int i = 1;
 
-         R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(3),tmp6.shape(5)));
+      tmp4.clear();
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,R[i - 1],b[rc - 1 + inverse * (Ly - 1)][i],0.0,tmp4);
 
-         tmp3.clear();
-         Gemm(CblasTrans,CblasNoTrans,1.0,U[inverse](rc,0),b[rc + inverse * (Ly - 1)][0],0.0,tmp3);
+      tmp4bis.clear();
+      Contract(1.0,tmp4,shape(0,2),U[inverse](rc,i),shape(0,2),0.0,tmp4bis);
 
-         M = b[rc - 1 + inverse * (Ly - 1)][0].shape(2);
-         N = tmp3.shape(1) * tmp3.shape(2);
-         K = b[rc - 1 + inverse * (Ly - 1)][0].shape(0) * b[rc - 1 + inverse * (Ly - 1)][0].shape(1);
+      Permute(tmp4bis,shape(0,2,1,3),tmp4);
 
-         R[0].resize(shape(b[rc - 1 + inverse * (Ly - 1)][0].shape(2),tmp3.shape(1),tmp3.shape(2)));
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, b[rc - 1 + inverse * (Ly - 1)][0].data(),M,tmp3.data(),N,0.0,R[0].data(),N);
-/*
-         //now for the rest of the rightgoing sweep.
-         for(int i = 1;i < Lx-1;++i){
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc + inverse * (Ly - 1)][i]);
 
-            tmp4.clear();
-            Contract(1.0,R[i - 1],shape(0),b[rc - 1 + inverse * (Ly - 1)][i],shape(0),0.0,tmp4);
+      //QR
+      tmp2.clear();
+      Geqrf(b[rc + inverse * (Ly - 1)][i],tmp2);
 
-            tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),U[inverse](rc,i),shape(0,2),0.0,tmp4bis);
+      //construct new left operator
+      Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
 
-            Permute(tmp4bis,shape(0,2,1,3),tmp4);
+//      }
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc + inverse * (Ly - 1)][i]);
+      //rightmost site
+      tmp4.clear();
+      Contract(1.0,R[Lx - 2],shape(0),b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(0),0.0,tmp4);
 
-            //QR
-            tmp2.clear();
-            Geqrf(b[rc + inverse * (Ly - 1)][i],tmp2);
+      tmp4bis.clear();
+      Contract(1.0,tmp4,shape(0,2),U[inverse](rc,Lx - 1),shape(0,2),0.0,tmp4bis);
 
-            //construct new left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
+      b[rc + inverse * (Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
 
-         }
+      //LQ
+      tmp2.clear();
+      Gelqf(tmp2,b[rc + inverse * (Ly - 1)][Lx - 1]);
 
-         //rightmost site
-         tmp4.clear();
-         Contract(1.0,R[Lx - 2],shape(0),b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(0),0.0,tmp4);
+      //construct new right operator
+      tmp5.clear();
+      Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(1),U[inverse](rc,Lx - 1),shape(2),0.0,tmp5);
 
-         tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),U[inverse](rc,Lx - 1),shape(0,2),0.0,tmp4bis);
+      tmp6.clear();
+      Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
 
-         b[rc + inverse * (Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
+      R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
 
-         //LQ
-         tmp2.clear();
-         Gelqf(tmp2,b[rc + inverse * (Ly - 1)][Lx - 1]);
+      //back to the beginning with a leftgoing sweep
+      for(int i = Lx-2;i > 0;--i){
 
-         //construct new right operator
-         tmp5.clear();
-         Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],shape(1),U[inverse](rc,Lx - 1),shape(2),0.0,tmp5);
+      tmp4.clear();
+      Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
 
-         tmp6.clear();
-         Contract(1.0,tmp5,shape(3),b[rc + inverse * (Ly - 1)][Lx - 1],shape(1),0.0,tmp6);
+      tmp4bis.clear();
+      Contract(1.0,tmp4,shape(1,2),U[inverse](rc,i),shape(2,3),0.0,tmp4bis);
 
-         R[Lx - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(2),tmp6.shape(4)));
+      Permute(tmp4bis,shape(0,2,3,1),tmp4);
 
-         //back to the beginning with a leftgoing sweep
-         for(int i = Lx-2;i > 0;--i){
+      Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,b[rc + inverse*(Ly - 1)][i]);
 
-            tmp4.clear();
-            Contract(1.0,b[rc - 1 + inverse * (Ly - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
+      //LQ
+      tmp2.clear();
+      Gelqf(tmp2,b[rc + inverse * (Ly - 1)][i]);
 
-            tmp4bis.clear();
-            Contract(1.0,tmp4,shape(1,2),U[inverse](rc,i),shape(2,3),0.0,tmp4bis);
-
-            Permute(tmp4bis,shape(0,2,3,1),tmp4);
-
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],tmp4,0.0,b[rc + inverse*(Ly - 1)][i]);
-
-            //LQ
-            tmp2.clear();
-            Gelqf(tmp2,b[rc + inverse * (Ly - 1)][i]);
-
-            //construct right operator
-            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i - 1]);
-
-         }
-
-         //multiply the last L matrix with the first matrix:
-         DArray<3> tmp3;
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc + inverse * (Ly - 1)][0],tmp2,0.0,tmp3);
-
-         b[rc + inverse*(Ly - 1)][0] = std::move(tmp3);
-
-         ++iter;
+      //construct right operator
+      Gemm(CblasNoTrans,CblasTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i - 1]);
 
       }
 
-      //redistribute the norm over the chain
-      double nrm =  Nrm2(b[rc + inverse*(Ly - 1)][0]);
+      //multiply the last L matrix with the first matrix:
+      DArray<3> tmp3;
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,b[rc + inverse * (Ly - 1)][0],tmp2,0.0,tmp3);
+
+      b[rc + inverse*(Ly - 1)][0] = std::move(tmp3);
+
+      ++iter;
+
+   }
+
+   //redistribute the norm over the chain
+   double nrm =  Nrm2(b[rc + inverse*(Ly - 1)][0]);
 
       //rescale the first site
       Scal((1.0/nrm), b[rc + inverse*(Ly - 1)][0]);
