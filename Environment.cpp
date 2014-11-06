@@ -762,25 +762,39 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
 
       vector< DArray<3> > R(Ly - 1);
 
+      DArray<4> tmp4;
+      DArray<4> tmp4bis;
+
       //first construct rightmost operator
-      DArray<5> tmp5;
-      Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][Ly - 1],shape(1),U[inverse](Ly - 1,rc+1),shape(3),0.0,tmp5);
+      DArray<3> tmp3;
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,r[rc + inverse*(Lx - 1)][Ly - 1],U[inverse](Ly - 1,rc+1),0.0,tmp3);
 
-      DArray<6> tmp6;
-      Contract(1.0,tmp5,shape(2),r[rc + inverse*(Lx - 1)][Ly - 1],shape(1),0.0,tmp6);
+      DArray<3> tmp3bis;
+      Permute(tmp3,shape(2,1,0),tmp3bis);
 
-      R[Ly - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(3),tmp6.shape(4)));
+      int M = r[rc + 1 + inverse*(Lx - 1)][Ly - 1].shape(0);
+      int N = tmp3bis.shape(1) * tmp3bis.shape(2);
+      int K = tmp3bis.shape(0);
+
+      R[Lx - 2].resize(shape(M,tmp3bis.shape(1),tmp3bis.shape(2)));
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,r[rc + 1 + inverse*(Lx - 1)][Ly - 1].data(),K,tmp3bis.data(),N,0.0,R[Lx-2].data(),N);
 
       //now move from right to left to construct the rest
       for(int i = Ly - 2;i > 0;--i){
 
-         DArray<4> tmp4;
-         Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
+         tmp4.clear();
+         Gemm(CblasNoTrans,CblasTrans,1.0,r[rc + inverse*(Lx - 1)][i],R[i],0.0,tmp4);
 
-         DArray<4> tmp4bis;
-         Contract(1.0,tmp4,shape(1,2),U[inverse](i,rc+1),shape(3,1),0.0,tmp4bis);
+         tmp4bis.clear();
+         Permute(tmp4,shape(1,2,0,3),tmp4bis);
 
-         Contract(1.0,tmp4bis,shape(2,1),r[rc + inverse*(Lx - 1)][i],shape(1,2),0.0,R[i - 1]);
+         tmp4.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,U[inverse](i,rc+1),tmp4bis,0.0,tmp4);
+
+         tmp4bis.clear();
+         Permute(tmp4,shape(1,3,0,2),tmp4bis);
+
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,r[rc + 1 + inverse*(Lx - 1)][i],tmp4bis,0.0,R[i - 1]);
 
       }
 
@@ -789,77 +803,85 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
       while(iter < comp_sweeps){
 
          //now start sweeping to get the compressed boundary MPS
-         DArray<4> tmp4;
-         Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][0],shape(2),R[0],shape(0),0.0,tmp4);
+         tmp3.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,U[inverse](0,rc+1),r[rc + 1 + inverse*(Lx - 1)][0],0.0,tmp3);
 
-         DArray<4> tmp4bis;
-         Contract(1.0,U[inverse](0,rc+1),shape(1,3),tmp4,shape(2,1),0.0,tmp4bis);
+         tmp3bis.clear();
+         Permute(tmp3,shape(2,1,0),tmp3bis);
 
-         r[rc + inverse*(Lx - 1)][0] = tmp4bis.reshape_clear(shape(1,D,tmp4bis.shape(3)));
+         M = tmp3bis.shape(2);
+         N = R[0].shape(2);
+         K = tmp3bis.shape(0) * tmp3bis.shape(1);
+
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,tmp3bis.data(),M,R[0].data(),N,0.0,r[rc + inverse*(Lx - 1)][0].data(),N);
 
          //QR
          DArray<2> tmp2;
          Geqrf(r[rc + inverse*(Lx - 1)][0],tmp2);
 
          //construct new left operator
-         DArray<5> tmp5;
-         Contract(1.0,r[rc+1 + inverse*(Lx - 1)][0],shape(1),U[inverse](0,rc+1),shape(3),0.0,tmp5);
+         M = tmp3bis.shape(0) * tmp3bis.shape(1);
+         N = r[rc + inverse*(Lx - 1)][0].shape(2);
+         K = tmp3bis.shape(2);
 
-         DArray<6> tmp6;
-         Contract(1.0,tmp5,shape(2),r[rc + inverse*(Lx - 1)][0],shape(1),0.0,tmp6);
-
-         R[0] = tmp6.reshape_clear(shape(tmp6.shape(1),tmp6.shape(2),tmp6.shape(5)));
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp3bis.data(),K,r[rc + inverse*(Lx - 1)][0].data(),N,0.0,R[0].data(),N);
 
          //now for the rest of the rightgoing sweep.
          for(int i = 1;i < Ly-1;++i){
 
             tmp4.clear();
-            Contract(1.0,R[i - 1],shape(0),r[rc + 1 + inverse*(Lx - 1)][i],shape(0),0.0,tmp4);
+            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],r[rc + 1 + inverse*(Lx - 1)][i],0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),U[inverse](i,rc+1),shape(2,3),0.0,tmp4bis);
-
+            Permute(tmp4,shape(3,1,0,2),tmp4bis);
+            
             tmp4.clear();
-            Permute(tmp4bis,shape(0,2,1,3),tmp4);
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4bis,U[inverse](i,rc+1),0.0,tmp4);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,r[rc + inverse*(Lx - 1)][i]);
+            tmp4bis.clear();
+            Permute(tmp4,shape(1,2,0,3),tmp4bis);
+
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,R[i],0.0,r[rc + inverse*(Lx - 1)][i]);
 
             //QR
             tmp2.clear();
             Geqrf(r[rc + inverse*(Lx - 1)][i],tmp2);
 
             //construct left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,r[rc + inverse*(Lx - 1)][i],0.0,R[i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4bis,r[rc + inverse*(Lx - 1)][i],0.0,R[i]);
 
          }
 
          //rightmost site
          tmp4.clear();
-         Contract(1.0,R[Ly - 2],shape(0),r[rc + 1 + inverse*(Lx - 1)][Ly - 1],shape(0),0.0,tmp4);
+         Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][Ly - 1],shape(1,2),U[inverse](Ly - 1,rc+1),shape(3,1),0.0,tmp3);
 
-         tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),U[inverse](Ly - 1,rc+1),shape(2,3),0.0,tmp4bis);
+         tmp3bis.clear();
+         Permute(tmp3,shape(0,2,1),tmp3bis);
 
-         r[rc  + inverse*(Lx - 1)][Ly - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
+         //construct new left operator
+         M = R[Ly - 2].shape(2);
+         N = tmp3bis.shape(2);
+         K = tmp3bis.shape(0) * tmp3bis.shape(1);
+
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,R[Ly - 2].data(),M,tmp3bis.data(),N,0.0,r[rc  + inverse*(Lx - 1)][Ly - 1].data(),N);
 
          //LQ
          tmp2.clear();
          Gelqf(tmp2,r[rc + inverse*(Lx - 1)][Ly - 1]);
 
          //construct new right operator
-         tmp5.clear();
-         Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][Ly - 1],shape(1),U[inverse](Ly - 1,rc+1),shape(3),0.0,tmp5);
+         M = tmp3bis.shape(0) * tmp3bis.shape(1);
+         N = r[rc  + inverse*(Lx - 1)][Ly - 1].shape(0);
+         K = tmp3bis.shape(2);
 
-         tmp6.clear();
-         Contract(1.0,tmp5,shape(2),r[rc + inverse*(Lx - 1)][Ly - 1],shape(1),0.0,tmp6);
-
-         R[Ly - 2] = tmp6.reshape_clear(shape(tmp6.shape(0),tmp6.shape(3),tmp6.shape(4)));
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,tmp3bis.data(),K,r[rc  + inverse*(Lx - 1)][Ly - 1].data(),K,0.0,R[Ly - 2].data(),N);
 
          //back to the beginning with a leftgoing sweep
          for(int i = Ly-2;i > 0;--i){
 
             tmp4.clear();
-            Contract(1.0,r[rc + 1 + inverse*(Lx - 1)][i],shape(2),R[i],shape(0),0.0,tmp4);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,r[rc + 1 + inverse*(Lx - 1)][i],R[i],0.0,tmp4);
 
             tmp4bis.clear();
             Contract(1.0,tmp4,shape(1,2),U[inverse](i,rc+1),shape(3,1),0.0,tmp4bis);
