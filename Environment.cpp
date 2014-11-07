@@ -671,7 +671,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          for(int i = 1;i < Lx-1;++i){
 
             tmp4.clear();
-            Gemm(CblasTrans,CblasNoTrans,1.0,R[i],t[rc + 1 + inverse*(Ly - 1)][i],0.0,tmp4);
+            Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],t[rc + 1 + inverse*(Ly - 1)][i],0.0,tmp4);
 
             tmp4bis.clear();
             Permute(tmp4,shape(3,1,0,2),tmp4bis);
@@ -786,7 +786,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse){
          Gemm(CblasNoTrans,CblasTrans,1.0,r[rc + inverse*(Lx - 1)][i],R[i],0.0,tmp4);
 
          tmp4bis.clear();
-         Permute(tmp4,shape(1,2,0,3),tmp4bis);
+         Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
          tmp4.clear();
          Gemm(CblasTrans,CblasNoTrans,1.0,U[inverse](i,rc+1),tmp4bis,0.0,tmp4);
