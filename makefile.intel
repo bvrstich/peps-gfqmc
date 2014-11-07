@@ -15,7 +15,6 @@ CPPSRC	= peps-gfmc.cpp\
            Walker.cpp\
            Distribution.cpp\
            MPS.cpp\
-           compress.cpp\
            Environment.cpp\
            SL_PEPS.cpp\
            GFMC.cpp\

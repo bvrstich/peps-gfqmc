@@ -17,7 +17,6 @@
 #include "Distribution.h"
 
 #include "MPS.h"
-#include "compress.h"
 
 #include "Environment.h"
 
