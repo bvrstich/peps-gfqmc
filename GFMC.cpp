@@ -294,7 +294,7 @@ void GFMC::write(const int step){
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << ET << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << ET << "\t" << num_stable << endl;
    output.close();
 
 }

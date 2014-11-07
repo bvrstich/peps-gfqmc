@@ -32,7 +32,7 @@ int main(int argc,char *argv[]){
    int Nw = 1000;
 
    GFMC gfmc(tau,Nw);
-   gfmc.walk(1);
+   gfmc.walk(1000000);
 
    return 0;
   
