@@ -839,20 +839,23 @@ void Walker::calc_EL(){
    //construct 4 right going operators
 
    //U overlap
+   LUU.clear();
    Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,Lx - 2)[0],env[myID].gr(false,Lx - 2)[0],0.0,LUU);
 
    //I overlap
+   LII.clear();
    Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,Lx - 2)[0],env[myID].gr(true,Lx - 2)[0],0.0,LII);
 
    //calculate the overlap with this state
    tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
 
-   nn_over.push_back(1.0);
-
    //only calculate LUI and LIU if it contributes
    if( (*this)[Lx - 1] != (*this)[2*Lx - 1] ){
 
+      LUI.clear();
       Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,Lx - 2)[0],env[myID].gr(true,Lx - 2)[0],0.0,LUI); //regular
+
+      LIU.clear();
       Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,Lx - 2)[0],env[myID].gr(false,Lx - 2)[0],0.0,LIU); //inverse
 
    }
@@ -1200,185 +1203,146 @@ void Walker::calc_EL(){
       }
 
    }
-/*
-   // -- (3) -- || top row = Ly-1: again similar to overlap calculation
 
-   //first construct the right renormalized operators
+   // -- (3) -- || left col = 0: again similar to overlap calculation
 
    //A: regular
-   tmp4.clear();
-   Contract(1.0,env[myID].gt(false,Ly-2)[Lx - 1],shape(1),env[myID].gb(false,Ly-2)[Lx - 1],shape(1),0.0,tmp4);
-
-   RU[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(false,Ly-2)[Lx - 1].shape(0),env[myID].gb(false,Ly-2)[Lx - 1].shape(0)));
+   RU[Ly - 2].clear();
+   Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gl(false,0)[Ly - 1],env[myID].gr(false,0)[Ly - 1],0.0,RU[Ly - 2]);
 
    //B: inverse
-   Contract(1.0,env[myID].gt(true,Ly-2)[Lx - 1],shape(1),env[myID].gb(true,Ly-2)[Lx - 1],shape(1),0.0,tmp4);
-
-   RI[Lx - 2] = tmp4.reshape_clear(shape(env[myID].gt(true,Ly-2)[Lx - 1].shape(0),env[myID].gb(true,Ly-2)[Lx - 1].shape(0)));
+   RI[Ly - 2].clear();
+   Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gl(true,0)[Ly - 1],env[myID].gr(true,0)[Ly - 1],0.0,RI[Ly - 2]);
 
    //now construct the rest
-   for(int col = Lx - 2;col > 0;--col){
+   for(int row = Ly - 2;row > 0;--row){
 
-      //A: regular
       tmp3.clear();
-      Contract(1.0,env[myID].gt(false,Ly-2)[col],shape(2),RU[col],shape(0),0.0,tmp3);
 
-      RU[col - 1].clear();
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(false,Ly-2)[col],shape(1,2),0.0,RU[col-1]);
+      //U
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[row],RU[row],0.0,tmp3);
 
-      //B: regular
-      Contract(1.0,env[myID].gt(true,Ly-2)[col],shape(2),RI[col],shape(0),0.0,tmp3);
+      RU[row  - 1].clear();
+      Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gr(false,0)[row],0.0,RU[row - 1]);
 
-      RI[col - 1].clear();
-      Contract(1.0,tmp3,shape(1,2),env[myID].gb(true,Ly-2)[col],shape(1,2),0.0,RI[col-1]);
+      //I
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[row],RI[row],0.0,tmp3);
 
-   }
-
-   //construct the left going operators on the first top site
-
-   //A: regular
-   tmp5.clear();
-   Contract(1.0,env[myID].gU(false)(Ly-1,0),shape(2),env[myID].gb(false,Ly-2)[0],shape(1),0.0,tmp5);
-
-   LUU = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
-
-   //overlap part A
-   tmp_over = Dot(LUU,RU[0]);
-
-   //B: inverse
-   tmp5.clear();
-   Contract(1.0,env[myID].gU(true)(Ly-1,0),shape(2),env[myID].gb(true,Ly-2)[0],shape(1),0.0,tmp5);
-
-   LII = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
-
-   //overlap part B
-   tmp_over += Dot(LII,RI[0]);
-
-   //LUI and LIU if they contribute
-   if( (*this)[(Ly - 1)*Lx] != (*this)[(Ly - 1)*Lx + 1]){
-
-      //A: regular
-      Contract(1.0,env[myID].gU(true)(Ly-1,0),shape(2),env[myID].gb(false,Ly-2)[0],shape(1),0.0,tmp5);
-
-      LUI = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,0).shape(3),env[myID].gb(false,Ly-2)[0].shape(2)));
-
-      //B: inverse
-      Contract(1.0,env[myID].gU(false)(Ly-1,0),shape(2),env[myID].gb(true,Ly-2)[0],shape(1),0.0,tmp5);
-
-      LIU = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,0).shape(3),env[myID].gb(true,Ly-2)[0].shape(2)));
+      RI[row  - 1].clear();
+      Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gr(true,0)[row],0.0,RI[row - 1]);
 
    }
 
-   //middle of the chain:
-   for(int col = 1;col < Lx-1;++col){
+   //construct 4 right going operators
 
-      //first close down the I term from the previous site for the energy
-      if( (*this)[(Ly - 1)*Lx + col - 1] != (*this)[(Ly - 1)*Lx + col]){
+   //U overlap
+   LUU.clear();
+   Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[0],env[myID].gr(false,0)[0],0.0,LUU);
 
-         //A: regular
+   //I overlap
+   LII.clear();
+   Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[0],env[myID].gr(true,0)[0],0.0,LII);
+
+   //calculate the overlap with this state
+   tmp_over = Dot(RU[0],LUU) + Dot(RI[0],LII);
+
+   //only calculate LUI and LIU if it contributes
+   if( (*this)[0] != (*this)[Lx] ){
+
+      LUI.clear();
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[0],env[myID].gr(false,0)[0],0.0,LUI); //regular
+
+      LIU.clear();
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[0],env[myID].gr(true,0)[0],0.0,LIU); //inverse
+
+   }
+
+   //now for the middle terms
+   for(int row = 1;row < Ly - 1;++row){
+
+      //only calculate if it contributes
+      if( (*this)[(row - 1)*Lx] != (*this)[row*Lx] ){
+
+         // A: regular
+
+         //construct the right intermediate contraction (paste top to right)
          tmp3.clear();
-         Contract(1.0,env[myID].gb(false,Ly-2)[col],shape(2),RU[col],shape(1),0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[row],RU[row],0.0,tmp3);
 
-         // 1) paste I to the right
-         M = env[myID].gU(true)(Ly-1,col).shape(0);
-         N = tmp3.shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
+         //paste I to the right
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gr(false,0)[row],0.0,RU[row - 1]);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(true)(Ly-1,col).data(),K,tmp3.data(),K,0.0,RU[col-1].data(),N);
+         ward = Dot(LUI,RU[row - 1]);
 
-         //expectation A
-         ward = Dot(LUI,RU[col - 1]);
+         // B: inverse
+         tmp3.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[row],RI[row],0.0,tmp3);
 
-         //B: inverse
-         Contract(1.0,env[myID].gb(true,Ly-2)[col],shape(2),RI[col],shape(1),0.0,tmp3);
+         //paste I to the right
+         Gemm(CblasNoTrans,CblasTrans,1.0,tmp3,env[myID].gr(true,0)[row],0.0,RI[row - 1]);
 
-         // 1) paste I to the right
-         M = env[myID].gU(false)(Ly-1,col).shape(0);
-         N = tmp3.shape(0);
-         K = tmp3.shape(1) * tmp3.shape(2);
-
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, env[myID].gU(false)(Ly-1,col).data(),K,tmp3.data(),K,0.0,RI[col-1].data(),N);
-
-         //expectation B
-         ward += Dot(LIU,RI[col - 1]);
+         ward += Dot(LIU,RI[row - 1]);
 
          nn_over.push_back(ward/tmp_over);
 
-         EL -= 0.5 * ward/tmp_over;
+         //contract with left LI 
+         EL -= 0.5 * ward /tmp_over;
 
       }
 
-      //construct left renormalized operators for next site
+      //construct left renormalized operators for next site:
 
-      //A regular
+      //A: regular 
       tmp3.clear();
-      Contract(1.0,LUU,shape(1),env[myID].gb(false,Ly-2)[col],shape(0),0.0,tmp3);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,LUU,env[myID].gr(false,0)[row],0.0,tmp3);
 
-      // 1) construct new LII
-      tmp3bis.clear();
-      Contract(1.0,env[myID].gU(false)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
+      //1) construct new unity on the left
+      LUU.clear();
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[row],tmp3,0.0,LUU);
 
-      LUU = tmp3bis.reshape_clear(shape(env[myID].gU(false)(Ly-1,col).shape(3),env[myID].gb(false,Ly-2)[col].shape(2)));
+      //2) if it contributes, calculate inverse on the left
+      if((*this)[row*Lx] != (*this)[(row + 1)*Lx]){
 
-      // 2) if it contributes, construct new left LUI
-      if( (*this)[(Ly - 1)*Lx + col] != (*this)[(Ly - 1)*Lx + col + 1]){
-
-         Contract(1.0,env[myID].gU(true)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
-
-         LUI = tmp3bis.reshape_clear(shape(env[myID].gU(true)(Ly-1,col).shape(3),env[myID].gb(false,Ly-2)[col].shape(2)));
+         LUI.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[row],tmp3,0.0,LUI);
 
       }
 
-      //B inverse
-      tmp3.clear();
-      Contract(1.0,LII,shape(1),env[myID].gb(true,Ly-2)[col],shape(0),0.0,tmp3);
+      //B: inverse 
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,LII,env[myID].gr(true,0)[row],0.0,tmp3);
 
-      // 1) construct new LII
-      Contract(1.0,env[myID].gU(true)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
+      //1) construct new unity on the left
+      LII.clear();
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(true,0)[row],tmp3,0.0,LII);
 
-      LII = tmp3bis.reshape_clear(shape(env[myID].gU(true)(Ly-1,col).shape(3),env[myID].gb(true,Ly-2)[col].shape(2)));
+      //2) if it contributes, calculate inverse on the left
+      if((*this)[row*Lx] != (*this)[(row + 1)*Lx]){
 
-      // 2) if it contributes, construct new left LIU
-      if( (*this)[(Ly - 1)*Lx + col] != (*this)[(Ly - 1)*Lx + col + 1]){
-
-         Contract(1.0,env[myID].gU(false)(Ly-1,col),shape(0,2),tmp3,shape(0,1),0.0,tmp3bis);
-
-         LIU = tmp3bis.reshape_clear(shape(env[myID].gU(false)(Ly-1,col).shape(3),env[myID].gb(true,Ly-2)[col].shape(2)));
+         LIU.clear();
+         Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gl(false,0)[row],tmp3,0.0,LIU);
 
       }
+
    }
 
-   //finally close down on last top site
+   //last site of right col: close down LUI and LIU
+   if((*this)[(Ly - 2)*Lx + Lx - 1] != (*this)[Lx*Ly - 1]){
 
-   // close down last LUI and LIU
-   if( (*this)[(Ly - 1)*Lx + Lx - 2] != (*this)[(Ly - 1)*Lx + Lx - 1]){
+      //A: regular LUI
+      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gl(true,0)[Ly - 1],env[myID].gr(false,0)[Ly - 1],0.0,RU[Ly - 2]);
 
-      //A: regular
-      tmp5.clear();
-      Contract(1.0,env[myID].gU(true)(Ly-1,Lx-1),shape(2),env[myID].gb(false,Ly-2)[Lx - 1],shape(1),0.0,tmp5);
+      ward = Dot(LUI,RU[Ly-2]);
 
-      //reshape tmp to a 2-index array
-      RU[Lx - 2] = tmp5.reshape_clear(shape(env[myID].gU(true)(Ly-1,Lx-1).shape(0),env[myID].gb(false,Ly-2)[Lx - 1].shape(0)));
+      //B: inverse LIU
+      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gl(false,0)[Ly - 1],env[myID].gr(true,0)[Ly - 1],0.0,RI[Ly - 2]);
 
-      //energy from A part
-      ward = Dot(LUI,RU[Lx-2]);
-
-      //B: inverse
-      tmp5.clear();
-      Contract(1.0,env[myID].gU(false)(Ly-1,Lx-1),shape(2),env[myID].gb(true,Ly-2)[Lx - 1],shape(1),0.0,tmp5);
-
-      //reshape tmp to a 2-index array
-      RI[Lx - 2] = tmp5.reshape_clear(shape(env[myID].gU(false)(Ly-1,Lx-1).shape(0),env[myID].gb(true,Ly-2)[Lx - 1].shape(0)));
-
-      //energy from B part
-      ward += Dot(LIU,RI[Lx-2]);
+      ward += Dot(LIU,RI[Ly-2]);
 
       nn_over.push_back(ward/tmp_over);
 
       EL -= 0.5 * ward/tmp_over;
 
    }
-
 
    // #################################################################
    // ### ----          Vertical Sz contribution is easy       ---- ### 
@@ -1400,5 +1364,7 @@ void Walker::calc_EL(){
    }
 
    EL += 0.25 * cnt;
-   */
+
+   cout << EL << endl;
+
 }
