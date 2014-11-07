@@ -58,6 +58,9 @@ class GFMC {
       //!target energy, growth estimate
       double ET;
 
+      //!number of walkers that stay the same in a given generation
+      int num_stable;
+
       //!The walkers
       std::vector<Walker> walker;
 

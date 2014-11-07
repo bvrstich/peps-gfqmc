@@ -136,8 +136,9 @@ void GFMC::walk(const int n_steps){
 double GFMC::propagate(){
 
    double sum = 0.0;
+   int num = 0;
 
-#pragma omp parallel for reduction(+: sum)
+#pragma omp parallel for reduction(+: sum,num)
    for(unsigned int i = 0;i < walker.size();i++){
 
 #ifdef _OPENMP
@@ -155,17 +156,25 @@ double GFMC::propagate(){
       //draw new walker
       int pick = dist[myID].draw();
 
-      walker[i] = dist[myID].gwalker(pick);
+      if(pick == 0)//nothing happens
+         num++;
+      else{
+
+         walker[i] = dist[myID].gwalker(pick);
+
+         //calculate new properties
+         walker[i].calc_EL();
+
+      }
 
       //multiply weight
       walker[i].multWeight(nrm);
 
-      //calculate new properties
-      walker[i].calc_EL();
-
       sum += walker[i].gWeight();
 
    }
+
+   num_stable = num;
 
    return sum;
 
@@ -236,7 +245,7 @@ void GFMC::PopulationControl(double scaling){
 
    for(unsigned int i = 0;i < walker.size();++i)
       sum += walker[i].gWeight();
-   
+
    //rescale the weights to unity for correct ET estimate in next iteration
    for(unsigned int i = 0;i < walker.size();++i)
       walker[i].multWeight((double)Nw/sum);
