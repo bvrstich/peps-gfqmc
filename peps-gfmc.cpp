@@ -29,23 +29,8 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L);
 
    Walker walker;
-
-   //calculate the single layer contractions first:
-   global::env[0].sU(false,global::peps,walker);
-   global::env[0].calc('H',false);
-   global::env[0].calc('V',false);
-
-   global::env[0].test(false);
-
-   /*
    walker.calc_EL();
 
-   double dtau = 0.01;
-   int Nw = 1000;
-
-   GFMC gfmc(dtau,Nw);
-   gfmc.walk(1);
-*/
    return 0;
   
 }

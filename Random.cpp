@@ -20,7 +20,7 @@ Random::Random(){
    mersenne = new boost::random::mt19937 [num_omp_threads];
 
    for (int cnt=0; cnt<num_omp_threads; cnt++)
-      mersenne[cnt].seed( 0/*time(0) + cnt*cnt*23 */);
+      mersenne[cnt].seed( time(0) + cnt*cnt*23 );
 
    dists = new boost::random::uniform_real_distribution<double> * [num_omp_threads];
 
