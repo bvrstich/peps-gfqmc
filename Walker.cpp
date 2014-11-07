@@ -1365,6 +1365,4 @@ void Walker::calc_EL(){
 
    EL += 0.25 * cnt;
 
-   cout << EL << endl;
-
 }
