@@ -44,6 +44,9 @@ class VMC {
       //!projected energy at current timestep
       double EP;
 
+      //! number of 'not moved' walker
+      int num_stable;
+
       //!The walkers
       std::vector<Walker> walker;
 

@@ -59,7 +59,7 @@ void VMC::SetupWalkers(){
 void VMC::walk(const int n_steps){
 
    char filename[200];
-   sprintf(filename,"output/%dx%d/f=%f.txt",Lx,Ly,global::f);
+   sprintf(filename,"output/VMC/%dx%d/DT=%d/D_aux=%d.txt",Lx,Ly,DT,D_aux);
 
    ofstream output(filename,ios::trunc);
 
@@ -90,8 +90,9 @@ void VMC::walk(const int n_steps){
 void VMC::propagate(){
 
    double sum = 0.0;
+   int num = 0;
 
-#pragma omp parallel for reduction(+:sum)
+#pragma omp parallel for reduction(+:sum,num)
    for(unsigned int i = 0;i < walker.size();i++){
 
 #ifdef _OPENMP
@@ -106,13 +107,22 @@ void VMC::propagate(){
       //draw new walker
       int pick = dist[myID].metropolis();
 
-      sum += dist[myID].energy();
+      if(pick == 0)
+         num++;
+      else{
 
-      walker[i] = dist[myID].gwalker(pick);
+         walker[i] = dist[myID].gwalker(pick);
+         walker[i].calc_EL();
+
+      }
+
+      sum += walker[i].gEL();
 
    }
 
    EP = sum / (double) Nw;
+
+   num_stable = num;
 
 }
 
@@ -122,11 +132,11 @@ void VMC::propagate(){
 void VMC::write(const int step){
 
    char filename[200];
-   sprintf(filename,"output/%dx%d/f=%f.txt",Lx,Ly,global::f);
+   sprintf(filename,"output/VMC/%dx%d/DT=%d/D_aux=%d.txt",Lx,Ly,DT,D_aux);
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP/(double)(Lx*Ly) << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << num_stable << endl;
    output.close();
 
 }
