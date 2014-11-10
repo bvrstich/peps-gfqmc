@@ -165,7 +165,6 @@ double Walker::pot_en() const {
 
 /**
  * calculate the local energy expectation value and overlap with the accesible states
- * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(){
 
