@@ -35,5 +35,5 @@ int main(int argc,char *argv[]){
    gfmc.walk(1000000);
 
    return 0;
-  
+
 }

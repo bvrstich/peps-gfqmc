@@ -165,7 +165,6 @@ double Walker::pot_en() const {
 
 /**
  * calculate the local energy expectation value and overlap with the accesible states
- * @param peps trial wave function represented as peps
  */
 void Walker::calc_EL(){
 
@@ -800,7 +799,6 @@ void Walker::calc_EL(){
    // ### ---- from left to right: contract in mps/mpo fashion ---- ### 
    // #################################################################
 
-
    // -- (1) -- || right column: similar to overlap calculation
 
    //construct the left and right (vertical) environment layers
@@ -1325,8 +1323,8 @@ void Walker::calc_EL(){
 
    }
 
-   //last site of right col: close down LUI and LIU
-   if((*this)[(Ly - 2)*Lx + Lx - 1] != (*this)[Lx*Ly - 1]){
+   //last site of left col: close down LUI and LIU
+   if((*this)[(Ly - 2)*Lx] != (*this)[(Ly - 1)*Lx]){
 
       //A: regular LUI
       Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gl(true,0)[Ly - 1],env[myID].gr(false,0)[Ly - 1],0.0,RU[Ly - 2]);

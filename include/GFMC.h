@@ -44,6 +44,8 @@ class GFMC {
 
       void dump(const char *);
 
+      void check();
+
    private:
       
       //!The total desired number of walkers
@@ -51,6 +53,7 @@ class GFMC {
 
       //!timestep
       double dtau;
+
 
       //!projected energy at current timestep
       double EP;
