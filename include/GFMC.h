@@ -44,8 +44,6 @@ class GFMC {
 
       void dump(const char *);
 
-      void check();
-
    private:
       
       //!The total desired number of walkers
