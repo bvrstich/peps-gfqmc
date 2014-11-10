@@ -153,7 +153,7 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
    }
 
    //then vertical 'final' states
-   for(int c = 0;c < Lx;++c){
+   for(int c = Lx - 1;c >= 0;--c){
 
       for(int r = 0;r < Ly - 1;++r){
 

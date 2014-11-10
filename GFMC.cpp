@@ -45,7 +45,7 @@ GFMC::~GFMC(){ }
 void GFMC::SetupWalkers(){
 
    walker.resize(Nw);
-
+/*
    walker[0] = Walker(0);
    walker[0].calc_EL();
 
@@ -61,6 +61,32 @@ void GFMC::SetupWalkers(){
 
    }
 
+   ifstream in("debug.walk");
+
+   for(int i = 0;i < Nw;++i){
+
+      bool tmp;
+      double weight;
+
+      //read
+      for(int j = 0;j < Lx*Ly;++j){
+
+         in >> tmp;
+
+         walker[i][j] = tmp;
+
+      }
+
+      in >> weight;
+
+      walker[i].sWeight(weight);
+
+      walker[i].calc_EL();
+
+      cout << i << "\t" << weight << "\t" << walker[i].gEL() << endl;
+
+   }
+*/
 }
 
 void GFMC::walk(const int n_steps){
@@ -311,9 +337,19 @@ void GFMC::dump(const char *filename){
 
       for(int r = 0;r < Ly;++r)
          for(int c = 0;c < Lx;++c)
-            out << walker[i][r*Lx + Ly] << " ";
-      out << endl;
+            out << walker[i][r*Lx + c] << " ";
+      out << walker[i].gWeight() << endl;
 
    }
+
+}
+
+/**
+ * dump the walkers to a single file
+ */
+void GFMC::check(){
+
+   for(unsigned int i = 0;i < walker.size();++i)
+      cout << i << "\t" << walker[i].gWeight() << "\t" << walker[i].gEL() << endl;
 
 }
