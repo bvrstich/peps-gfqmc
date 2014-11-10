@@ -1,5 +1,5 @@
-#ifndef GFMC_H
-#define GFMC_H
+#ifndef VMC_H
+#define VMC_H
 
 #include <iostream>
 #include <iomanip>
@@ -12,30 +12,22 @@ using std::vector;
 class Walker;
 class Distribution;
 
-class GFMC {
+class VMC {
 
    public:
    
       //constructor with input trialwavefunction
-      GFMC(double,int);
+      VMC(int);
       
       //Destructor
-      virtual ~GFMC();
+      virtual ~VMC();
       
       //Let the walkers propagate for n_steps steps
       void walk(int);
 
-      void test();
-
       //Propagate my population of walkers for 1 timestep. Return the sum of the coeff of my walkers.
-      double propagate();
+      void propagate();
       
-      //Control the population of walkers based on scaling * weight
-      void PopulationControl(double);
-
-      //Calculate the single walker projected energies, update the energy history, calculate the fluctuation metric, and the total projected energy
-      void sEP();
-
       //Write the projected energy, target energy
       void write(int);
 
@@ -49,18 +41,8 @@ class GFMC {
       //!The total desired number of walkers
       int Nw;
 
-      //!timestep
-      double dtau;
-
-
       //!projected energy at current timestep
       double EP;
-
-      //!target energy, growth estimate
-      double ET;
-
-      //!number of walkers that stay the same in a given generation
-      int num_stable;
 
       //!The walkers
       std::vector<Walker> walker;

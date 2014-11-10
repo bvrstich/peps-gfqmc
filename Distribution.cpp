@@ -52,44 +52,6 @@ ostream &operator<<(ostream &output,const Distribution &dist_p){
 }
 
 /** 
- * normalize the distribution
- * @return the total weight/norm of the distrubition
- */
-double Distribution::normalize(){
-
-   double nrm = 0.0;
-
-   for(int i = 0;i < this->size();++i)
-      nrm += (*this)[i];
-
-   for(int i = 0;i < this->size();++i)
-      (*this)[i] /= nrm;
-
-   return nrm;
-
-}
-
-/**
- * draw a number from the distribution
- */
-int Distribution::draw() const {
-
-   //Get what you should do
-   int trial = RN()*this->size();
-   double x = RN();
-
-   while((*this)[trial] < x){
-
-      trial = RN()*this->size();
-      x = RN();
-
-   }
-
-   return trial;
-
-}
-
-/** 
  * @return the list of final Walker states
  */
 const vector< Walker > &Distribution::glist() const {
@@ -120,10 +82,8 @@ Walker &Distribution::gwalker(int index) {
 /**
  * construct and fill the distribution by calculating the matrix elements <0|1-dtau * H|i> for all i = 0,...,n
  * @param walker_i input walker, the list and distribution is constructed from this
- * @param dtau timestep
- * @param ET estimator for ground state energy
  */
-void Distribution::construct(const Walker &walker_i,double dtau,double ET){
+void Distribution::construct(const Walker &walker_i){
 
    //first reset the lists
    list.clear();
@@ -137,12 +97,12 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
       for(int c = 0;c < Lx - 1;++c){
 
-         if(walker_i[r*Lx + c] != walker_i[r*Lx + (c + 1)]){
+         if(walker_i[r*Lx + c] != walker_i[r*Lx + c + 1]){
 
             Walker walker_f(walker_i);
 
             walker_f[r*Lx + c] = !(walker_i[r*Lx + c]);
-            walker_f[r*Lx + (c + 1)] = !(walker_i[r*Lx + (c + 1)]);
+            walker_f[r*Lx + c + 1] = !(walker_i[r*Lx + c + 1]);
 
             list.push_back(walker_f);
 
@@ -174,20 +134,26 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
    this->resize(list.size());
 
-   (*this)[0] = 1.0 - dtau * (list[0].pot_en() - ET);
+   (*this)[0] = 1.0;
 
-   for(int i = 1;i < list.size();++i)
-      (*this)[i] = 0.5 * dtau * ( walker_i.gnn_over(i) );
+   for(unsigned int i = 1;i < this->size();++i)
+      (*this)[i] = walker_i.gnn_over(i) * walker_i.gnn_over(i);
 
 }
 
 /**
- * check for negative entries
+ * draw a new walker using metropolis algorithm
  */
-void Distribution::check_negative() const {
+int Distribution::metropolis() const {
 
-   for(int i = 0;i < this->size();++i)
-      if( (*this)[i] < 0.0 )
-         cout << "ERROR\t" << (*this)[i] << endl;
+   //draw uniform move
+   int trial = (RN()*(list.size() - 1) + 1);
+
+   double x = RN();
+
+   if((*this)[trial] > x)
+      return trial;
+   else
+      return 0;
 
 }

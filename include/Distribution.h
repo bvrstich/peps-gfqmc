@@ -8,6 +8,8 @@
 using std::ostream;
 using std::vector;
 
+#include "Walker.h"
+
 /**
  * @author Brecht Verstichel
  * @date 22-07-2014\n\n
@@ -26,13 +28,9 @@ class Distribution : public vector<double> {
 
       virtual ~Distribution();
 
-      void construct(const Walker &,double,double);
+      void construct(const Walker &);
 
       int gn() const;
-
-      double normalize();
-
-      int draw() const;
 
       const vector< Walker > &glist() const;
 
@@ -40,13 +38,16 @@ class Distribution : public vector<double> {
 
       Walker &gwalker(int);
 
-      void check_negative() const;
+      int metropolis() const;
+
+      double energy() const;
 
    private:
 
       //!list of final walker states
       vector< Walker > list;
-      
+
+            
 };
 
 #endif
