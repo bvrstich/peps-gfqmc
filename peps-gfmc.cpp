@@ -31,36 +31,9 @@ int main(int argc,char *argv[]){
    double tau = 0.01;
    int Nw = 1000;
 
-   vector< Walker > walker(Nw);
+   GFMC gfmc(tau,Nw);
+   gfmc.walk(1000000);
 
-   ifstream in("debug.walk");
-
-   for(int i = 0;i < Nw;++i){
-
-      bool tmp;
-      double weight;
-
-      //read
-      for(int j = 0;j < global::Lx*global::Ly;++j){
-
-         in >> tmp;
-
-         walker[i][j] = tmp;
-
-      }
-
-      in >> weight;
-
-      walker[i].sWeight(weight);
-
-      walker[i].calc_EL();
-
-      cout << i << "\t" << weight << "\t" << walker[i].gEL() << endl;
-
-   }
-   /*
-           GFMC gfmc(tau,Nw);
-    */
    return 0;
 
 }
