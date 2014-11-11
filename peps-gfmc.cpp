@@ -28,11 +28,8 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
-   double tau = 0.01;
-   int Nw = 1000;
-
-   GFMC gfmc(tau,Nw);
-   gfmc.walk(1000000);
+   Walker walker;
+   cout << walker.overlap() << endl;
 
    return 0;
 

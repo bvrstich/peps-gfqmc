@@ -48,6 +48,8 @@ class Walker : public vector< bool > {
 
       void calc_EL();
 
+      double overlap() const;
+
   private:
 
       //!The walker weight

@@ -1364,3 +1364,54 @@ void Walker::calc_EL(){
    EL += 0.25 * cnt;
 
 }
+
+
+/**
+ * @param peps_i peps to take the overlap with
+ * @return the overlap between the trial peps (reg + inv) and the walker
+ */
+double Walker::overlap() const {
+
+#ifdef _OPENMP
+   int myID = omp_get_thread_num();
+#else
+   int myID = 0;
+#endif
+
+   int half = Ly/2;
+
+   env[myID].sU(false,peps,*this);
+
+   //bottom 
+   env[myID].gb(false,0).fill('b',env[myID].gU(false));
+
+   for(int i = 1;i <= half;++i)
+      env[myID].add_layer('b',i,false);
+
+   //top
+   env[myID].gt(false,Ly - 2).fill('t',env[myID].gU(false));
+
+   for(int i = Ly - 3;i >= half;--i)
+      env[myID].add_layer('t',i,false);
+
+   double tmp = env[myID].gb(false,half).dot(env[myID].gt(false,half));
+
+   env[myID].sU(true,peps,*this);
+
+   //bottom 
+   env[myID].gb(true,0).fill('b',env[myID].gU(true));
+
+   for(int i = 1;i <= half;++i)
+      env[myID].add_layer('b',i,true);
+
+   //top
+   env[myID].gt(true,Ly - 2).fill('t',env[myID].gU(true));
+
+   for(int i = Ly - 3;i >= half;--i)
+      env[myID].add_layer('t',i,true);
+
+   tmp += env[myID].gb(true,half).dot(env[myID].gt(true,half));
+
+   return tmp;
+
+}
