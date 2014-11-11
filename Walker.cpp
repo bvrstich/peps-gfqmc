@@ -22,6 +22,7 @@ using namespace global;
 Walker::Walker(int option) : std::vector< bool >( Lx * Ly ){
 
    weight = 1.0;
+   sign = 1;
 
    for(int r = 0;r < Ly;++r)
       for(int c = 0;c < Lx;++c){
@@ -44,6 +45,7 @@ Walker::Walker(const Walker &walker) : std::vector< bool >(walker) {
    this->weight = walker.gWeight();
    this->nn_over = walker.gnn_over();
    this->EL = walker.gEL();
+   this->sign = walker.gsign();
 
 }
 
@@ -58,6 +60,24 @@ Walker::~Walker(){ }
 double Walker::gWeight() const{
 
    return weight; 
+
+}
+
+/**
+ * flip the sign of the walker
+ */
+void Walker::sign_flip(){
+
+   sign *= -1;
+
+}
+
+/** 
+ * @return the sign of the walker
+ */
+int Walker::gsign() const{
+
+   return sign; 
 
 }
 

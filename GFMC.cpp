@@ -275,8 +275,8 @@ void GFMC::sEP(){
       double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
 
       //For the projected energy
-      projE_num += walker[wi].gWeight() * w_loc_en;
-      projE_den += walker[wi].gWeight();
+      projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en;
+      projE_den += walker[wi].gsign() * walker[wi].gWeight();
 
    }
 
