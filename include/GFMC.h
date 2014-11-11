@@ -52,7 +52,6 @@ class GFMC {
       //!timestep
       double dtau;
 
-
       //!projected energy at current timestep
       double EP;
 
