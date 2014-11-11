@@ -462,47 +462,8 @@ void PEPS<T>::scal(T val){
 }
 
 /**
- * @param mpx will be written to file
  * @param filename name of the file
- * save the MPX object to a file in binary format.
- */
-
-template<typename T>
-void PEPS<T>::save(const char *filename){
-
-   for(int row = 0;row < Ly;++row)
-      for(int col = 0;col < Lx;++col){
-
-         char name[200];
-
-         sprintf(name,"%s/site_(%d,%d).peps",filename,row,col);
-
-         std::ofstream fout(name);
-         fout.precision(16);
-
-         int Da = (*this)(row,col).shape(0);
-         int Db = (*this)(row,col).shape(1);
-         int Dc = (*this)(row,col).shape(2);
-         int Dd = (*this)(row,col).shape(3);
-         int De = (*this)(row,col).shape(4);
-
-         fout << Da << "\t" << Db << "\t" << Dc << "\t" << Dd << "\t" << De << endl;
-
-         for(int a_ = 0;a_ < Da;++a_)
-            for(int b_ = 0;b_ < Db;++b_)
-               for(int c_ = 0;c_ < Dc;++c_)
-                  for(int d_ = 0;d_ < Dd;++d_)
-                     for(int e_ = 0;e_ < De;++e_)
-                        fout << a_ << "\t" << b_ << "\t" << c_ << "\t" << d_ << "\t" << e_ << "\t" << (*this)(row,col)(a_,b_,c_,d_,e_) << endl;
-
-      }
-
-}
-
-/**
- * @param mpx will be constructed from file
- * @param filename name of the file
- * load the MPX object from a file in binary format.
+ * load the PEPS object from a file in binary format.
  */
 template<typename T>
 void PEPS<T>::load(const char *filename){
@@ -520,14 +481,14 @@ void PEPS<T>::load(const char *filename){
 
          fin >> Da >> Db >> Dc >> Dd >> De;
 
-         (*this)(row,col).resize(Da,Db,Dc,Dd,De);
+         (*this)(row,col).resize(Dc,Da,Db,Dd,De);
 
          for(int a_ = 0;a_ < Da;++a_)
             for(int b_ = 0;b_ < Db;++b_)
                for(int c_ = 0;c_ < Dc;++c_)
                   for(int d_ = 0;d_ < Dd;++d_)
                      for(int e_ = 0;e_ < De;++e_)
-                        fin >> a_ >> b_ >> c_ >> d_ >> e_ >> (*this)(row,col)(a_,b_,c_,d_,e_);
+                        fin >> a_ >> b_ >> c_ >> d_ >> e_ >> (*this)(row,col)(c_,a_,b_,d_,e_);
 
       }
 
@@ -563,6 +524,3 @@ template void PEPS< complex<double> >::scal(complex<double> val);
 
 template void PEPS<double>::load(const char *filename);
 template void PEPS< complex<double> >::load(const char *filename);
-
-template void PEPS<double>::save(const char *filename);
-template void PEPS< complex<double> >::save(const char *filename);

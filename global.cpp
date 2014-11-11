@@ -9,6 +9,7 @@ using std::endl;
 using std::vector;
 using std::complex;
 using std::ofstream;
+using std::ifstream;
 
 #include "include.h"
 
@@ -59,8 +60,20 @@ namespace global{
       for(int thr = 0;thr < omp_num_threads;++thr)
          env[thr] = Environment(DT,D_aux,1);
 
+      int mult = D_aux/DT;
+
+      char filename_in[200];
+      sprintf(filename_in,"/home/bright/bestanden/results/peps/%dx%d/D=%d/D_aux=%d/peps",Lx,Ly,DT,mult*DT*DT);
+
+      ifstream in(filename_in);
+
       peps.resize(Lx*Ly);
-      peps.initialize_jastrow(0.74);
+      peps.load(filename_in);
+
+      Walker walker;
+      double tmp = walker.overlap();
+
+      peps.scal(1.0/tmp);
 
    }
 
