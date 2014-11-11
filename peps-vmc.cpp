@@ -28,6 +28,11 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
+   int Nw = 1000;
+
+   VMC vmc(Nw);
+   vmc.walk(10000);
+
    return 0;
 
 }

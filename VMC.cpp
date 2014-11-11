@@ -44,15 +44,20 @@ void VMC::SetupWalkers(){
 
    walker.resize(Nw);
 
-   for(int i = 0;i < Nw;++i){
+   walker[0] = Walker(0);
+   walker[0].calc_EL();
+
+   walker[1] = Walker(1);
+   walker[1].calc_EL();
+
+   for(int i = 2;i < Nw;++i){
 
       if(i % 2 == 0)
-         walker[i] = Walker(0);
-      else
-         walker[i] = Walker(1);
+         walker[i] = walker[0];
+      else 
+         walker[i] = walker[1];
 
    }
-
 
 }
 
