@@ -98,6 +98,8 @@ void GFMC::walk(const int n_steps){
       cout << "   # walkers = " << walker.size() << endl;
       cout << "         E_P = " << EP << endl;
       cout << "         E_T = " << ET << endl;
+      cout << "    # stable = " << num_stable << endl;
+      cout << "    avg sign = " << avs << endl;
       cout << "---------------------------------------------------------" << endl;
 #endif
 
@@ -270,6 +272,9 @@ void GFMC::sEP(){
    double projE_num = 0.0;
    double projE_den = 0.0;
 
+   double sign_num = 0.0;
+   double sign_den = 0.0;
+
    for(unsigned int wi = 0;wi < walker.size();wi++){
 
       double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
@@ -278,9 +283,13 @@ void GFMC::sEP(){
       projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en;
       projE_den += walker[wi].gsign() * walker[wi].gWeight();
 
+      sign_num += walker[wi].gsign() * walker[wi].gWeight();
+      sign_den += walker[wi].gWeight();
+
    }
 
    EP = projE_num / projE_den;
+   avs = sign_num / sign_den;
 
 }
 
@@ -294,7 +303,7 @@ void GFMC::write(const int step){
 
    ofstream output(filename,ios::app);
    output.precision(16);
-   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << ET << "\t" << num_stable << endl;
+   output << step << "\t\t" << walker.size() << "\t" << EP << "\t" << ET << "\t" << num_stable << "\t" << avs << endl;
    output.close();
 
 }

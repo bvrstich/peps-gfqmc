@@ -25,8 +25,6 @@ class GFMC {
       //Let the walkers propagate for n_steps steps
       void walk(int);
 
-      void test();
-
       //Propagate my population of walkers for 1 timestep. Return the sum of the coeff of my walkers.
       double propagate();
       
@@ -60,6 +58,9 @@ class GFMC {
 
       //!number of walkers that stay the same in a given generation
       int num_stable;
+
+      //!average sign of current generation
+      double avs;
 
       //!The walkers
       std::vector<Walker> walker;
