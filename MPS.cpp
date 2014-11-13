@@ -239,69 +239,30 @@ void MPS::fill(char option,bool inverse,const Walker &walker) {
    if(option == 'b'){
 
       //just a shallow copy of bottom row
-      if(inverse){
+      for(int col = 0;col < Lx;++col)
+         (*this)[col].share_mem(peps[0](0,col, inverse ^ walker[col] ));
 
-         for(int col = 0;col < Lx;++col)
-            (*this)[col].share_mem(peps[0](0,col, !(walker[col]) ));
-
-      }
-      else{
-
-         for(int col = 0;col < Lx;++col)
-            (*this)[col].share_mem(peps[0](0,col, walker[col] ));
-
-      }
 
    }
    else if(option == 't'){
 
       //just a shallow copy of the top row
-      if(inverse){
-
-         for(int col = 0;col < Lx;++col)
-            (*this)[col].share_mem(peps[0](Ly-1,col, !(walker[(Ly-1)*Lx + col]) ));
-
-      }
-      else{
-
-         for(int col = 0;col < Lx;++col)
-            (*this)[col].share_mem(peps[0](Ly-1,col, walker[(Ly-1)*Lx + col] ));
-
-      }
+      for(int col = 0;col < Lx;++col)
+         (*this)[col].share_mem(peps[0](Ly-1,col, inverse ^ walker[(Ly-1)*Lx + col] ));
 
    }
    else if(option == 'l'){
 
       //just a shallow copy of the left col
-      if(inverse){
-
-         for(int row = 0;row < Ly;++row)
-            (*this)[row].share_mem(peps[1](row,0, !(walker[row*Lx]) ));
-
-      }
-      else{
-
-         for(int row = 0;row < Ly;++row)
-            (*this)[row].share_mem(peps[1](row,0, (walker[row*Lx]) ));
-
-      }
+      for(int row = 0;row < Ly;++row)
+         (*this)[row].share_mem(peps[1](row,0, inverse ^ walker[row*Lx] ));
 
    }
    else{//right
 
-      //just a shallow copy of the left col
-      if(inverse){
-
-         for(int row = 0;row < Ly;++row)
-            (*this)[row].share_mem(peps[1](row,Lx - 1, !(walker[row*Lx + Lx - 1]) ));
-
-      }
-      else{
-
-         for(int row = 0;row < Ly;++row)
-            (*this)[row].share_mem(peps[1](row,Lx - 1, (walker[row*Lx + Lx - 1]) ));
-
-      }
+      //just a shallow copy of the right col
+      for(int row = 0;row < Ly;++row)
+         (*this)[row].share_mem(peps[1](row,Lx - 1, inverse ^ walker[row*Lx + Lx - 1] ));
 
    }
 

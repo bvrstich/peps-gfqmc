@@ -62,7 +62,7 @@ class Environment {
 
       void test(bool);
 
-      void add_layer(const char,int,bool);
+      void add_layer(const char,int,bool,const Walker &);
 
    private:
 
