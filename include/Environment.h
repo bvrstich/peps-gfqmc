@@ -13,7 +13,6 @@ class PEPS;
 
 class MPS;
 class Walker;
-class SL_PEPS;
 
 /**
  * @author Brecht Verstichel
@@ -59,12 +58,6 @@ class Environment {
       void sD(int);
       void sD_aux(int);
 
-      void sU(bool,const PEPS<double> &,const Walker &);
-
-      const SL_PEPS &gU(bool) const;
-
-      const std::vector< SL_PEPS > &gU() const;
-
       void calc(const char,bool);
 
       void test(bool);
@@ -78,9 +71,6 @@ class Environment {
       vector< MPS > r;
       vector< MPS > t;
       vector< MPS > b;
-
-      //!contraction between current (and inverse) walker state and peps
-      std::vector< SL_PEPS > U;
 
       //!regular bond dimension of peps
       int D;

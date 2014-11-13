@@ -67,8 +67,7 @@ namespace global{
 
       ifstream in(filename_in);
 
-      peps.resize(Lx*Ly);
-      peps.load(filename_in);
+      peps = PEPS<double>(filename_in);
 
       Walker walker;
       double tmp = walker.overlap();

@@ -37,11 +37,6 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
    D_aux = D_aux_in;
    comp_sweeps = comp_sweeps_in;
 
-   U.resize(2);
-
-   for(int i = 0;i < 2;++i)
-      U[i] = SL_PEPS(D);
-
    //allocate the memory
    
    //bottom
@@ -141,8 +136,6 @@ Environment::Environment(const Environment &env_copy){
    r = env_copy.gr();
    l = env_copy.gl();
 
-   U = env_copy.gU();
-
    D = env_copy.gD();
    D_aux = env_copy.gD_aux();
 
@@ -156,7 +149,7 @@ Environment::Environment(const Environment &env_copy){
 Environment::~Environment(){ }
 
 /**
- * construct the enviroment mps's for the input PEPS and Walker: make sure the correct SL_PEPS object is filled first
+ * construct the enviroment mps's for the input PEPS and Walker
  * @param dir    if 'L' construct full left environment
  *               if 'R' construct full right environment
  *               if 'T' construct full top environment
@@ -395,38 +388,6 @@ const vector< MPS > &Environment::gl() const {
 const vector< MPS > &Environment::gr() const {
 
    return r;
-
-}
-
-/**
- * @param inverse if true return inverse
- * @return the overlap between the regular walker and the PEPS
- */
-const SL_PEPS &Environment::gU(bool inverse) const {
-
-   return U[inverse];
-
-}
-
-/**
- * @param inverse if true return inverse
- * @return the overlap between the regular walker and the PEPS
- */
-const std::vector< SL_PEPS > &Environment::gU() const {
-
-   return U;
-
-}
-
-/**
- * constract the physical indices of the PEPS with the walker, put it in U object
- * @param inverse if true, take the inverse of the Walker
- * @param peps the PEPS<double> object
- * @param Walker the regular walker
- */
-void Environment::sU(bool inverse,const PEPS<double> &peps,const Walker &walker){
-
-   U[inverse].fill(inverse,peps,walker);
 
 }
 

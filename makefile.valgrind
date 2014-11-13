@@ -16,7 +16,6 @@ CPPSRC	= peps-gfmc.cpp\
            Distribution.cpp\
            MPS.cpp\
            Environment.cpp\
-           SL_PEPS.cpp\
            GFMC.cpp\
            btas_defs.cpp
 

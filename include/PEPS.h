@@ -20,7 +20,7 @@ using namespace btas;
  * This class PEPS is a class written for the construction of projected entangled pair states on a rectangular lattice
  */
 template<typename T>
-class PEPS : public vector< TArray<T,5> > {
+class PEPS : public vector< TArray<T,4> > {
 
    public:
 
@@ -40,17 +40,9 @@ class PEPS : public vector< TArray<T,5> > {
 
       void sD(int);
 
-      void grow_bond_dimension(int,double);
+      const TArray<T,4> &operator()(int,int,int) const;
 
-      void initialize_jastrow(double);
-
-      const TArray<T,5> &operator()(int,int) const;
-
-      TArray<T,5> &operator()(int,int);
-
-      T dot(const PEPS &,bool init = false) const;
-
-      void normalize(bool = false);
+      TArray<T,4> &operator()(int,int,int);
 
       void scal(T );
 
@@ -75,7 +67,13 @@ ostream &operator<<(ostream &output,const PEPS<T> &peps_p){
          output << std::endl;
          output << "Tensor on site (" << r << "," << c << ")\t" << std::endl;
          output << std::endl;
-         output << peps_p(r,c) << std::endl;
+         for(int s = 0;s < global::d;++s){
+
+            output << "spin " << s << std::endl;
+            output << std::endl;
+            output << peps_p(r,c,s) << std::endl;
+
+         }
 
       }
 
