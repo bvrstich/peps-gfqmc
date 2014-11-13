@@ -149,11 +149,11 @@ template PEPS< complex<double> >::PEPS(const PEPS< complex<double> > &);
 template PEPS<double>::~PEPS();
 template PEPS< complex<double> >::~PEPS();
 
-template TArray<double,4> &PEPS<double>::operator()(int r,int c);
-template TArray<complex<double>,4> &PEPS< complex<double> >::operator()(int r,int c);
+template TArray<double,4> &PEPS<double>::operator()(int r,int c,int s);
+template TArray<complex<double>,4> &PEPS< complex<double> >::operator()(int r,int c,int s);
 
-template const TArray<double,4> &PEPS<double>::operator()(int r,int c) const;
-template const TArray<complex<double>,4> &PEPS< complex<double> >::operator()(int r,int c) const;
+template const TArray<double,4> &PEPS<double>::operator()(int r,int c,int s) const;
+template const TArray<complex<double>,4> &PEPS< complex<double> >::operator()(int r,int c,int s) const;
 
 template int PEPS<double>::gD() const;
 template int PEPS< complex<double> >::gD() const;

@@ -24,7 +24,7 @@ namespace global{
 
    int d;
 
-   PEPS<double> peps;
+   std::vector< PEPS<double> > peps;
 
    int omp_num_threads;
 
@@ -67,12 +67,22 @@ namespace global{
 
       ifstream in(filename_in);
 
-      peps = PEPS<double>(filename_in);
+      peps.resize(2);
+
+      peps[0] = PEPS<double>(filename_in);
 
       Walker walker;
       double tmp = walker.overlap();
 
-      peps.scal(1.0/tmp);
+      peps[0].scal(1.0/tmp);
+
+      //now construct permuted peps'
+      peps[1].resize(Lx*Ly);
+
+      for(int r = 0;r < Ly;++r)
+         for(int c = 0;c < Lx;++c)
+            for(int s = 0;s < d;++s)
+               Permute(peps[0](r,c,s),shape(2,0,3,1),peps[1](r,c,s));
 
    }
 

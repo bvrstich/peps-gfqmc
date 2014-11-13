@@ -27,8 +27,8 @@ class PEPS : public vector< TArray<T,4> > {
       //empty
       PEPS();
       
-      //!construct with bond dimension
-      PEPS(int);
+      //construct from file
+      PEPS(const char *filename);
 
       //copy constructor
       PEPS(const PEPS &);

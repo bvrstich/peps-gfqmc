@@ -229,61 +229,77 @@ void MPS::normalize(){
 }
 
 /**
- * fill a MPS object, by creating a single layer from contracting a peps with a physical vector
+ * fill a MPS object, by creating a single layer from contracting a peps with a physical vector, i.e. a walker
  * @param option 't'op, 'b'ottom, 'l'eft or 'r'ight
- * @param slp single layer contracted peps
+ * @param inverse if true use inverse walker
+ * @param walker the input Walker object
  */
-void MPS::fill(char option,const SL_PEPS &slp) {
+void MPS::fill(char option,bool inverse,const Walker &walker) {
 
    if(option == 'b'){
 
-      //just a deep copy of slp bottom row
-      for(int col = 0;col < Lx;++col){
+      //just a shallow copy of bottom row
+      if(inverse){
 
-         int dim = slp(0,col).size();
+         for(int col = 0;col < Lx;++col)
+            (*this)[col].share_mem(peps[0](0,col, !(walker[col]) ));
 
-         blas::copy(dim,slp(0,col).data(),1,(*this)[col].data(),1);
+      }
+      else{
+
+         for(int col = 0;col < Lx;++col)
+            (*this)[col].share_mem(peps[0](0,col, walker[col] ));
 
       }
 
    }
    else if(option == 't'){
 
-      //just a deep copy of slp bottom row
-      for(int col = 0;col < Lx;++col){
+      //just a shallow copy of the top row
+      if(inverse){
 
-         int dim = slp(Ly-1,col).size();
+         for(int col = 0;col < Lx;++col)
+            (*this)[col].share_mem(peps[0](Ly-1,col, !(walker[(Ly-1)*Lx + col]) ));
 
-         blas::copy(dim,slp(Ly-1,col).data(),1,(*this)[col].data(),1);
+      }
+      else{
+
+         for(int col = 0;col < Lx;++col)
+            (*this)[col].share_mem(peps[0](Ly-1,col, walker[(Ly-1)*Lx + col] ));
 
       }
 
    }
    else if(option == 'l'){
 
-      //just a deep copy of slp left column
-      for(int row = 0;row < Ly;++row){
+      //just a shallow copy of the left col
+      if(inverse){
 
-         DArray<4> tmp4;
-         Permute(slp(row,0),shape(2,0,3,1),tmp4);
+         for(int row = 0;row < Ly;++row)
+            (*this)[row].share_mem(peps[1](row,0, !(walker[row*Lx]) ));
 
-         //shallow copy of the memory
-         (*this)[row].share_mem(tmp4);
+      }
+      else{
 
+         for(int row = 0;row < Ly;++row)
+            (*this)[row].share_mem(peps[1](row,0, (walker[row*Lx]) ));
 
       }
 
    }
    else{//right
 
-      //just a permutation of slp right column
-      for(int row = 0;row < Ly;++row){
+      //just a shallow copy of the left col
+      if(inverse){
 
-         DArray<4> tmp4;
-         Permute(slp(row,Lx-1),shape(2,0,3,1),tmp4);
+         for(int row = 0;row < Ly;++row)
+            (*this)[row].share_mem(peps[1](row,Lx - 1, !(walker[row*Lx + Lx - 1]) ));
 
-         //shallow copy of the memory
-         (*this)[row].share_mem(tmp4);
+      }
+      else{
+
+         for(int row = 0;row < Ly;++row)
+            (*this)[row].share_mem(peps[1](row,Lx - 1, (walker[row*Lx + Lx - 1]) ));
 
       }
 

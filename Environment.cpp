@@ -150,27 +150,23 @@ Environment::~Environment(){ }
 
 /**
  * construct the enviroment mps's for the input PEPS and Walker
- * @param dir    if 'L' construct full left environment
- *               if 'R' construct full right environment
- *               if 'T' construct full top environment
- *               if 'B' construct full bottom environment
- *               if 'A' construct all environments
+ * @param dir    if 'H' construct full top and bottom (for horizontal sweep) environments
+ *               if 'V' construct full left and right environments, for vertical sweeps
  * @param inverse if true inverse walker
- * @param peps input PEPS<double>
- * @param D_aux dimension to which environment will be compressed
+ * @param walker input Walker object
  */
-void Environment::calc(const char dir,bool inverse){
+void Environment::calc(const char dir,bool inverse,const Walker &walker){
 
    if(dir == 'H'){//only bottom and top
 
       //bottom 
-      b[inverse * (Ly - 1)].fill('b',U[inverse]);
+      b[inverse * (Ly - 1)].fill('b',inverse,walker);
 
       for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,inverse);
 
       //top
-      t[Ly - 2 + inverse * (Ly - 1)].fill('t',U[inverse]);
+      t[Ly - 2 + inverse * (Ly - 1)].fill('t',inverse,walker);
 
       for(int i = Ly - 3;i >= 0;--i)
          this->add_layer('t',i,inverse);

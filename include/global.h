@@ -47,8 +47,8 @@ namespace global {
    //!number of omp threads
    extern int omp_num_threads;
 
-   //!trial wavefunction
-   extern PEPS<double> peps;
+   //!trial wavefunction: permuted for convenience
+   extern vector< PEPS<double> > peps;
 
    void init(int,int,int,int,int);
 

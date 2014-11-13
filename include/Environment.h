@@ -58,7 +58,7 @@ class Environment {
       void sD(int);
       void sD_aux(int);
 
-      void calc(const char,bool);
+      void calc(const char,bool,const Walker &);
 
       void test(bool);
 

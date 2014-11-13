@@ -46,9 +46,7 @@ class MPS : public vector< TArray<double,3> > {
 
       double dot(const MPS &bra) const;
 
-      void fill(char,const SL_PEPS &);
-
-      void gemv(char,char,int,const SL_PEPS &);
+      void fill(char,bool,const Walker &);
 
       void scal(double);
 
