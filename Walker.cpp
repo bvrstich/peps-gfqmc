@@ -376,7 +376,7 @@ void Walker::calc_EL(){
    for(int row = 1;row < Ly - 1;++row){
 
       //first create right renormalized operators
-      bool s = (*this)[row*Lx + Lx + 1];
+      bool s = (*this)[row*Lx + Lx - 1];
 
       //A: regular
       tmp3.clear();
@@ -393,7 +393,7 @@ void Walker::calc_EL(){
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,env[myID].gt(false,row)[Lx - 1].data(),K,tmp3bis.data(),N,0.0,ROU[Lx - 2].data(),N);
 
       //B: inverse
-      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gb(true,row - 1)[Lx-1],peps[0](row,Lx-1,~s),0.0,tmp3);
+      Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gb(true,row - 1)[Lx-1],peps[0](row,Lx-1,!s),0.0,tmp3);
 
       Permute(tmp3,shape(2,1,0),tmp3bis);
 
@@ -429,7 +429,7 @@ void Walker::calc_EL(){
          Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
          tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,~s),tmp4bis,0.0,tmp4);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,!s),tmp4bis,0.0,tmp4);
 
          tmp4bis.clear();
          Permute(tmp4,shape(1,3,0,2),tmp4bis);
@@ -464,7 +464,7 @@ void Walker::calc_EL(){
       tmp_over = Dot(LOUU,ROU[0]);
 
       //B: inverse
-      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(true,row)[0],peps[0](row,0,~s),0.0,tmp3);
+      Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(true,row)[0],peps[0](row,0,!s),0.0,tmp3);
 
       Permute(tmp3,shape(0,2,1),tmp3bis);
 
@@ -479,7 +479,7 @@ void Walker::calc_EL(){
       if((*this)[row*Lx] != (*this)[row*Lx + 1]){
 
          //A: regular
-         Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(false,row)[0],peps[0](row,0,~s),0.0,tmp3);
+         Gemm(CblasTrans,CblasNoTrans,1.0,env[myID].gt(false,row)[0],peps[0](row,0,!s),0.0,tmp3);
 
          Permute(tmp3,shape(0,2,1),tmp3bis);
 
@@ -514,7 +514,7 @@ void Walker::calc_EL(){
             Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
             tmp4.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,~s),tmp4bis,0.0,tmp4);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,!s),tmp4bis,0.0,tmp4);
 
             tmp4bis.clear();
             Permute(tmp4,shape(1,3,0,2),tmp4bis);
@@ -572,7 +572,7 @@ void Walker::calc_EL(){
          // 2) if it contributes, construct new left inverted : LOUI
          if((*this)[row*Lx + col] != (*this)[row*Lx + col + 1]){
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,perm4,peps[0](row,col,~s),0.0,tmp4bis);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,perm4,peps[0](row,col,!s),0.0,tmp4bis);
 
             Permute(tmp4bis,shape(0,3,1,2),tmp4);
 
@@ -588,7 +588,7 @@ void Walker::calc_EL(){
          Permute(tmp4,shape(1,3,2,0),perm4);
 
          //1) construct new LOII
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,perm4,peps[0](row,col,~s),0.0,tmp4bis);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,perm4,peps[0](row,col,!s),0.0,tmp4bis);
 
          Permute(tmp4bis,shape(0,3,1,2),tmp4);
 
@@ -616,7 +616,7 @@ void Walker::calc_EL(){
 
          //A: regular
          tmp3.clear();
-         Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gb(false,row - 1)[Lx-1],peps[0](row,Lx-1,~s),0.0,tmp3);
+         Gemm(CblasNoTrans,CblasTrans,1.0,env[myID].gb(false,row - 1)[Lx-1],peps[0](row,Lx-1,!s),0.0,tmp3);
 
          tmp3bis.clear();
          Permute(tmp3,shape(2,1,0),tmp3bis);
@@ -989,7 +989,7 @@ void Walker::calc_EL(){
       blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,tmp3.data(),K,env[myID].gr(false,col)[Ly - 1].data(),K,0.0,ROU[Ly - 2].data(),N);
 
       //B: inverse
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(true,col - 1)[Ly - 1],peps[0](Ly-1,col,~s),0.0,tmp3);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(true,col - 1)[Ly - 1],peps[0](Ly-1,col,!s),0.0,tmp3);
 
       M = tmp3.shape(0) * tmp3.shape(1);
       N = env[myID].gr(true,col)[Ly - 1].shape(0);
@@ -1027,7 +1027,7 @@ void Walker::calc_EL(){
          Permute(tmp4,shape(0,3,1,2),tmp4bis);
 
          tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[0](row,col,~s),0.0,tmp4);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[0](row,col,!s),0.0,tmp4);
 
          tmp4bis.clear();
          Permute(tmp4,shape(0,2,3,1),tmp4bis);
@@ -1060,7 +1060,7 @@ void Walker::calc_EL(){
       tmp_over = Dot(LOUU,ROU[0]);
 
       //B: inverse
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](0,col,~s),env[myID].gr(true,col)[0],0.0,tmp3);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](0,col,!s),env[myID].gr(true,col)[0],0.0,tmp3);
 
       LOII.resize(M,tmp3.shape(1),tmp3.shape(2));
       blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,env[myID].gl(true,col - 1)[0].data(),M,tmp3.data(),N,0.0,LOII.data(),N);
@@ -1072,7 +1072,7 @@ void Walker::calc_EL(){
       if((*this)[col] != (*this)[Lx + col]){
 
          //A: regular
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](0,col,~s),env[myID].gr(false,col)[0],0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](0,col,!s),env[myID].gr(false,col)[0],0.0,tmp3);
 
          LOUI.resize(M,tmp3.shape(1),tmp3.shape(2));
          blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,env[myID].gl(false,col - 1)[0].data(),M,tmp3.data(),N,0.0,LOUI.data(),N);
@@ -1101,7 +1101,7 @@ void Walker::calc_EL(){
             Permute(tmp4,shape(0,3,1,2),tmp4bis);
 
             tmp4.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[0](row,col,~s),0.0,tmp4);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[0](row,col,!s),0.0,tmp4);
 
             tmp4bis.clear();
             Permute(tmp4,shape(0,2,3,1),tmp4bis);
@@ -1157,7 +1157,7 @@ void Walker::calc_EL(){
          // 2) if it contributes, construct new left inverted : LOUI
          if((*this)[row*Lx + col] != (*this)[(row + 1)*Lx + col]){
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,~s),perm4,0.0,tmp4);
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,!s),perm4,0.0,tmp4);
 
             Permute(tmp4,shape(2,0,1,3),tmp4bis);
 
@@ -1175,7 +1175,7 @@ void Walker::calc_EL(){
 
          // 1) construct new LOII
          tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,~s),perm4,0.0,tmp4);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[0](row,col,!s),perm4,0.0,tmp4);
 
          tmp4bis.clear();
          Permute(tmp4,shape(2,0,1,3),tmp4bis);
@@ -1204,7 +1204,7 @@ void Walker::calc_EL(){
 
          //A: regular
          tmp3.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(false,col - 1)[Ly - 1],peps[0](Ly-1,col,~s),0.0,tmp3);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,env[myID].gl(false,col - 1)[Ly - 1],peps[0](Ly-1,col,!s),0.0,tmp3);
 
          M = tmp3.shape(0) * tmp3.shape(1);
          N = env[myID].gr(false,col)[Ly - 1].shape(0);

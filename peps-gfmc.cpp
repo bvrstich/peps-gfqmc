@@ -28,16 +28,10 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
-   Walker walker;
+   Walker walker(0);
+   walker.calc_EL();
 
-   global::env[0].calc('H',false,walker);
-   global::env[0].calc('H',true,walker);
-
-   global::env[0].calc('V',false,walker);
-   global::env[0].calc('V',true,walker);
-
-   global::env[0].test(true);
-   global::env[0].test(false);
+   cout << walker.gEL() << endl;
 
   // double dtau = 0.01;
    //int Nw = 1000;
