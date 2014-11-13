@@ -36,8 +36,8 @@ int main(int argc,char *argv[]){
    global::env[0].calc('V',false,walker);
    global::env[0].calc('V',true,walker);
 
-   global::env[0].test('H');
-   global::env[0].test('V');
+   global::env[0].test(true);
+   global::env[0].test(false);
 
   // double dtau = 0.01;
    //int Nw = 1000;

@@ -126,7 +126,7 @@ void PEPS<T>::sD(int D_in) {
 template<typename T>
 void PEPS<T>::scal(T val){
 
-   val = pow(val,(T)1.0/(T)this->size());
+   val = pow(val,(T)1.0/(T) (Lx*Ly) );
 
    //now scale every tensor in the array
    for(int r = 0;r < Ly;++r)
