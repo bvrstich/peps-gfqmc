@@ -28,11 +28,22 @@ int main(int argc,char *argv[]){
    //initialize the dimensions of the problem, set the trial
    global::init(D,D_aux,d,L,L);
 
-   double dtau = 0.01;
-   int Nw = 1000;
+   Walker walker;
 
-   GFMC gfmc(dtau,Nw);
-   gfmc.walk(1000000);
+   global::env[0].calc('H',false,walker);
+   global::env[0].calc('H',true,walker);
+
+   global::env[0].calc('V',false,walker);
+   global::env[0].calc('V',true,walker);
+
+   global::env[0].test('H');
+   global::env[0].test('V');
+
+  // double dtau = 0.01;
+   //int Nw = 1000;
+
+ //  GFMC gfmc(dtau,Nw);
+//   gfmc.walk(1000000);
 
    return 0;
 

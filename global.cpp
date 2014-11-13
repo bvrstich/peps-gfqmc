@@ -77,7 +77,7 @@ namespace global{
       peps[0].scal(1.0/tmp);
 
       //now construct permuted peps'
-      peps[1].resize(Lx*Ly);
+      peps[1] = peps[0];
 
       for(int r = 0;r < Ly;++r)
          for(int c = 0;c < Lx;++c)
