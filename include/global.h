@@ -20,7 +20,6 @@ template<typename T>
 class PEPS;
 
 class Walker;
-class Environment;
 
 namespace global {
 
@@ -40,9 +39,6 @@ namespace global {
 
    //!virtual dimension of the trial
    extern int D_aux;
-
-   //!environment object
-   extern std::vector< Environment > env;
 
    //!number of omp threads
    extern int omp_num_threads;

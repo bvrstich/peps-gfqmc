@@ -15,6 +15,8 @@ using std::vector;
 
 using namespace btas;
 
+class Environment;
+
 /**
  * class definition of Walker, made to describe the peps walkers. An array of L*L booleans vector. Each site represents a spin up (0) or spin down (1)
  */
@@ -40,6 +42,8 @@ class Walker : public vector< bool > {
 
       const vector<double> &gnn_over() const;
 
+      const Environment &genv() const;
+
       double gnn_over(int) const;
 
       double gEL() const;
@@ -48,7 +52,7 @@ class Walker : public vector< bool > {
 
       void calc_EL();
 
-      double overlap() const;
+      double overlap();
 
       int gsign() const;
 
@@ -64,6 +68,9 @@ class Walker : public vector< bool > {
 
       //!overlap of nn configurations with trial
       vector<double> nn_over;
+
+      //!environment of walker
+      Environment env;
 
       //!sign of the walker
       int sign;

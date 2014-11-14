@@ -11,12 +11,11 @@
 #include "global.h"
 
 #include "PEPS.h"
-#include "Walker.h"
-
-#include "Distribution.h"
-
 #include "MPS.h"
 
 #include "Environment.h"
 
+#include "Walker.h"
+
+#include "Distribution.h"
 #include "GFMC.h"

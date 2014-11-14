@@ -28,8 +28,6 @@ namespace global{
 
    int omp_num_threads;
 
-   std::vector< Environment > env;
-
    Random RN;
 
    /**
@@ -54,11 +52,6 @@ namespace global{
 #else
       omp_num_threads = 1;
 #endif
-
-      env.resize(omp_num_threads);
-
-      for(int thr = 0;thr < omp_num_threads;++thr)
-         env[thr] = Environment(DT,D_aux,1);
 
       int mult = D_aux/DT;
 
