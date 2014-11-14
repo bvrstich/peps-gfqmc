@@ -940,21 +940,24 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
 
       vector< DArray<3> > R(Ly - 1);
 
+      DArray<4> tmp4;
+      DArray<4> tmp4bis;
+
       //first construct rightmost operator
       bool s = inverse ^ walker[(Ly - 1)*Lx + rc];
 
       DArray<3> tmp3;
-      Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc - 1 + inverse*(Lx - 1)][Ly - 1],peps[0](Ly-1,rc,s),0.0,tmp3);
+      Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc + inverse*(Lx - 1)][Ly - 1],peps[3](Ly - 1,rc,s),0.0,tmp3);
 
-      int M = tmp3.shape(0) * tmp3.shape(1);
-      int N = l[rc + inverse*(Lx - 1)][Ly - 1].shape(0);
-      int K = tmp3.shape(2);
+      DArray<3> tmp3bis;
+      Permute(tmp3,shape(2,1,0),tmp3bis);
 
-      R[Ly - 2].resize(tmp3.shape(0),tmp3.shape(1),N);
-      blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,tmp3.data(),K,l[rc + inverse*(Lx - 1)][Ly - 1].data(),K,0.0,R[Ly - 2].data(),N);
+      int M = l[rc - 1 + inverse*(Lx - 1)][Ly - 1].shape(0);
+      int N = tmp3bis.shape(1) * tmp3bis.shape(2);
+      int K = tmp3bis.shape(0);
 
-      DArray<4> tmp4;
-      DArray<4> tmp4bis;
+      R[Lx - 2].resize(shape(M,tmp3bis.shape(1),tmp3bis.shape(2)));
+      blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,l[rc - 1 + inverse*(Lx - 1)][Ly - 1].data(),K,tmp3bis.data(),N,0.0,R[Lx-2].data(),N);
 
       //now move from right to left to construct the rest
       for(int i = Ly - 2;i > 0;--i){
@@ -962,18 +965,18 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
          s = inverse ^ walker[i*Lx + rc];
 
          tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc - 1 + inverse*(Lx - 1)][i],R[i],0.0,tmp4);
+         Gemm(CblasNoTrans,CblasTrans,1.0,l[rc + inverse*(Lx - 1)][i],R[i],0.0,tmp4);
 
          tmp4bis.clear();
-         Permute(tmp4,shape(0,3,1,2),tmp4bis);
+         Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
          tmp4.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[0](i,rc,s),0.0,tmp4);
+         Gemm(CblasTrans,CblasNoTrans,1.0,peps[3](i,rc,s),tmp4bis,0.0,tmp4);
 
          tmp4bis.clear();
-         Permute(tmp4,shape(0,2,3,1),tmp4bis);
+         Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
-         Gemm(CblasNoTrans,CblasTrans,1.0,tmp4bis,l[rc + inverse*(Lx - 1)][i],0.0,R[i - 1]);
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc - 1 + inverse*(Lx - 1)][i],tmp4bis,0.0,R[i - 1]);
 
       }
 
@@ -981,32 +984,31 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
 
       while(iter < comp_sweeps){
 
+         //now start sweeping to get the compressed boundary MPS
          s = inverse ^ walker[rc];
 
-         //now start sweeping to get the compressed boundary MPS
-         M = l[rc - 1 + inverse*(Lx - 1)][0].shape(2);
-         N = peps[0](0,rc,s).shape(1) * peps[0](0,rc,s).shape(3);
-         K = l[rc - 1 + inverse*(Lx - 1)][0].shape(1);
+         tmp3.clear();
+         Gemm(CblasNoTrans,CblasNoTrans,1.0,peps[3](0,rc,s),l[rc - 1 + inverse*(Lx - 1)][0],0.0,tmp3);
 
-         DArray<3> tmp3( shape(l[rc - 1 + inverse*(Lx - 1)][0].shape(2),peps[0](0,rc,s).shape(1),peps[0](0,rc,s).shape(3)) );
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,l[rc - 1 + inverse*(Lx - 1)][0].data(),M,peps[0](0,rc,s).data(),N,0.0,tmp3.data(),N);
+         tmp3bis.clear();
+         Permute(tmp3,shape(2,1,0),tmp3bis);
 
-         M = tmp3.shape(2);
+         M = tmp3bis.shape(2);
          N = R[0].shape(2);
-         K = tmp3.shape(0) * tmp3.shape(1);
+         K = tmp3bis.shape(0) * tmp3bis.shape(1);
 
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,tmp3.data(),M,R[0].data(),N,0.0,l[rc + inverse*(Lx - 1)][0].data(),N);
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,tmp3bis.data(),M,R[0].data(),N,0.0,l[rc + inverse*(Lx - 1)][0].data(),N);
 
          //QR
          DArray<2> tmp2;
          Geqrf(l[rc + inverse*(Lx - 1)][0],tmp2);
 
          //construct new left operator
-         M = tmp3.shape(0) * tmp3.shape(1);
+         M = tmp3bis.shape(0) * tmp3bis.shape(1);
          N = l[rc + inverse*(Lx - 1)][0].shape(2);
-         K = tmp3.shape(2);
+         K = tmp3bis.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp3.data(),K,l[rc + inverse*(Lx - 1)][0].data(),N,0.0,R[0].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, 1.0,tmp3bis.data(),K,l[rc + inverse*(Lx - 1)][0].data(),N,0.0,R[0].data(),N);
 
          //now for the rest of the rightgoing sweep.
          for(int i = 1;i < Ly-1;++i){
@@ -1017,13 +1019,13 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
             Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],l[rc - 1 + inverse*(Lx - 1)][i],0.0,tmp4);
 
             tmp4bis.clear();
-            Permute(tmp4,shape(1,3,0,2),tmp4bis);
+            Permute(tmp4,shape(3,1,0,2),tmp4bis);
 
             tmp4.clear();
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[1](i,rc,s),0.0,tmp4);
+            Gemm(CblasNoTrans,CblasTrans,1.0,tmp4bis,peps[3](i,rc,s),0.0,tmp4);
 
             tmp4bis.clear();
-            Permute(tmp4,shape(0,2,1,3),tmp4bis);
+            Permute(tmp4,shape(1,2,0,3),tmp4bis);
 
             Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,R[i],0.0,l[rc + inverse*(Lx - 1)][i]);
 
@@ -1039,25 +1041,29 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
          //rightmost site
          s = inverse ^ walker[(Ly - 1)*Lx + rc];
 
-         tmp3.clear();
-         Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc - 1 + inverse*(Lx - 1)][Ly - 1],peps[0](Ly-1,rc,s),0.0,tmp3);
+         tmp4.clear();
+         Contract(1.0,l[rc - 1 + inverse*(Lx - 1)][Ly - 1],shape(1,2),peps[3](Ly - 1,rc,s),shape(3,1),0.0,tmp3);
 
+         tmp3bis.clear();
+         Permute(tmp3,shape(0,2,1),tmp3bis);
+
+         //construct new left operator
          M = R[Ly - 2].shape(2);
-         N = tmp3.shape(2);
-         K = tmp3.shape(0) * tmp3.shape(1);
+         N = tmp3bis.shape(2);
+         K = tmp3bis.shape(0) * tmp3bis.shape(1);
 
-         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,R[Ly - 2].data(),M,tmp3.data(),N,0.0,l[rc + inverse*(Lx - 1)][Ly - 1].data(),N);
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0,R[Ly - 2].data(),M,tmp3bis.data(),N,0.0,l[rc  + inverse*(Lx - 1)][Ly - 1].data(),N);
 
          //LQ
          tmp2.clear();
          Gelqf(tmp2,l[rc + inverse*(Lx - 1)][Ly - 1]);
 
          //construct new right operator
-         M = tmp3.shape(0) * tmp3.shape(1);
-         N = l[rc + inverse*(Lx - 1)][Ly - 1].shape(0);
-         K = tmp3.shape(2);
+         M = tmp3bis.shape(0) * tmp3bis.shape(1);
+         N = l[rc  + inverse*(Lx - 1)][Ly - 1].shape(0);
+         K = tmp3bis.shape(2);
 
-         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,tmp3.data(),K,l[rc + inverse*(Lx - 1)][Ly - 1].data(),K,0.0,R[Ly - 2].data(),N);
+         blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0,tmp3bis.data(),K,l[rc  + inverse*(Lx - 1)][Ly - 1].data(),K,0.0,R[Ly - 2].data(),N);
 
          //back to the beginning with a leftgoing sweep
          for(int i = Ly-2;i > 0;--i){
@@ -1088,7 +1094,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
          }
 
          //multiply the last L matrix with the first matrix:
-         tmp3.clear();
+         DArray<3> tmp3;
          Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc + inverse*(Lx - 1)][0],tmp2,0.0,tmp3);
 
          l[rc + inverse*(Lx - 1)][0] = std::move(tmp3);
