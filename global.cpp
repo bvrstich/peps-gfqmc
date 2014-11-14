@@ -67,7 +67,7 @@ namespace global{
 
       ifstream in(filename_in);
 
-      peps.resize(2);
+      peps.resize(3);
 
       peps[0] = PEPS<double>(filename_in);
 
@@ -78,11 +78,16 @@ namespace global{
 
       //now construct permuted peps'
       peps[1] = peps[0];
+      peps[2] = peps[0];
 
       for(int r = 0;r < Ly;++r)
          for(int c = 0;c < Lx;++c)
-            for(int s = 0;s < d;++s)
+            for(int s = 0;s < d;++s){
+
                Permute(peps[0](r,c,s),shape(2,0,3,1),peps[1](r,c,s));
+               Permute(peps[0](r,c,s),shape(0,2,1,3),peps[2](r,c,s));
+
+            }
 
    }
 

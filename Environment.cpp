@@ -484,44 +484,46 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
             Gemm(CblasTrans,CblasNoTrans,1.0,R[i - 1],b[rc - 1 + inverse * (Ly - 1)][i],0.0,tmp4);
 
             tmp4bis.clear();
-            Contract(1.0,tmp4,shape(0,2),peps[0](rc,i,s),shape(0,2),0.0,tmp4bis);
+            Permute(tmp4,shape(1,3,0,2),tmp4bis);
 
-            Permute(tmp4bis,shape(0,2,1,3),tmp4);
+            tmp4.clear();
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,peps[2](rc,i,s),0.0,tmp4);
 
-            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4,R[i],0.0,b[rc + inverse * (Ly - 1)][i]);
+            tmp4bis.clear();
+            Permute(tmp4,shape(0,2,1,3),tmp4bis);
+
+            Gemm(CblasNoTrans,CblasNoTrans,1.0,tmp4bis,R[i],0.0,b[rc + inverse * (Ly - 1)][i]);
 
             //QR
             tmp2.clear();
             Geqrf(b[rc + inverse * (Ly - 1)][i],tmp2);
 
             //construct new left operator
-            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
+            Gemm(CblasTrans,CblasNoTrans,1.0,tmp4bis,b[rc + inverse * (Ly - 1)][i],0.0,R[i]);
 
          }
 
          //rightmost site
-         tmp4.clear();
-         Gemm(CblasTrans,CblasNoTrans,1.0,R[Lx - 2],b[rc - 1 + inverse * (Ly - 1)][Lx - 1],0.0,tmp4);
-
-         //spin
          s = inverse ^ walker[rc*Lx + Lx - 1];
 
-         tmp4bis.clear();
-         Contract(1.0,tmp4,shape(0,2),peps[0](rc,Lx - 1,1),shape(0,2),0.0,tmp4bis);
+         tmp3.clear();
+         Gemm(CblasNoTrans,CblasTrans,1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],peps[0](rc,Lx - 1,s),0.0,tmp3);
 
-         b[rc + inverse * (Ly - 1)][Lx - 1] = tmp4bis.reshape_clear(shape(tmp4bis.shape(0),D,1));
+         //construct new right operator
+         M = R[Lx - 2].shape(2);
+         N = tmp3.shape(2);
+         K = tmp3.shape(0) * tmp3.shape(1);
+
+         blas::gemm(CblasRowMajor, CblasTrans, CblasNoTrans, M, N, K, 1.0, R[Lx - 2].data(),M,tmp3.data(),N,0.0,b[rc + inverse * (Ly - 1)][Lx - 1].data(),N);
 
          //LQ
          tmp2.clear();
          Gelqf(tmp2,b[rc + inverse * (Ly - 1)][Lx - 1]);
 
          //construct new right operator
-         tmp3.clear();
-         Gemm(CblasNoTrans,CblasTrans,1.0,b[rc - 1 + inverse * (Ly - 1)][Lx - 1],peps[0](rc,Lx - 1,s),0.0,tmp3);
-
-         int M = tmp3.shape(0) * tmp3.shape(1);
-         int N = b[rc + inverse * (Ly - 1)][Lx - 1].shape(0);
-         int K = tmp3.shape(2);
+         M = tmp3.shape(0) * tmp3.shape(1);
+         N = b[rc + inverse * (Ly - 1)][Lx - 1].shape(0);
+         K = tmp3.shape(2);
 
          R[Lx - 2].resize(shape(tmp3.shape(0),tmp3.shape(1),b[rc + inverse * (Ly - 1)][Lx - 1].shape(0)));
          blas::gemm(CblasRowMajor, CblasNoTrans, CblasTrans, M, N, K, 1.0, tmp3.data(),K,b[rc + inverse * (Ly - 1)][Lx - 1].data(),K,0.0,R[Lx-2].data(),N);
@@ -831,7 +833,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
 
             tmp4bis.clear();
             Permute(tmp4,shape(3,1,0,2),tmp4bis);
-            
+
             tmp4.clear();
             Gemm(CblasNoTrans,CblasTrans,1.0,tmp4bis,peps[0](i,rc+1,s),0.0,tmp4);
 
@@ -969,7 +971,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
       while(iter < comp_sweeps){
 
          s = inverse ^ walker[rc];
-         
+
          //now start sweeping to get the compressed boundary MPS
          M = l[rc - 1 + inverse*(Lx - 1)][0].shape(2);
          N = peps[0](0,rc,s).shape(1) * peps[0](0,rc,s).shape(3);
@@ -997,7 +999,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
 
          //now for the rest of the rightgoing sweep.
          for(int i = 1;i < Ly-1;++i){
- 
+
             s = inverse ^ walker[i*Lx + rc];
 
             tmp4.clear();
@@ -1025,7 +1027,7 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
 
          tmp3.clear();
          Gemm(CblasNoTrans,CblasNoTrans,1.0,l[rc - 1 + inverse*(Lx - 1)][Ly - 1],peps[0](Ly-1,rc,s),0.0,tmp3);
- 
+
          M = R[Ly - 2].shape(2);
          N = tmp3.shape(2);
          K = tmp3.shape(0) * tmp3.shape(1);
