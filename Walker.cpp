@@ -1425,7 +1425,8 @@ double Walker::overlap() const {
    //top
    env[myID].gt(false,Ly - 2).fill('t',false,*this);
 
-   for(int i = Ly - 3;i >= half;--i)
+   //for(int i = Ly - 3;i >= half;--i)
+   int i = Ly - 3;
       env[myID].add_layer('t',i,false,*this);
 
    double tmp = env[myID].gb(false,half).dot(env[myID].gt(false,half));

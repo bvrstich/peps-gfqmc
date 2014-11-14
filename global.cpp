@@ -71,14 +71,10 @@ namespace global{
 
       peps[0] = PEPS<double>(filename_in);
 
-      Walker walker;
-      double tmp = walker.overlap();
-
-      peps[0].scal(1.0/tmp);
-
       //now construct permuted peps'
       peps[1] = peps[0];
       peps[2] = peps[0];
+      peps[3] = peps[0];
 
       for(int r = 0;r < Ly;++r)
          for(int c = 0;c < Lx;++c)
@@ -86,8 +82,18 @@ namespace global{
 
                Permute(peps[0](r,c,s),shape(2,0,3,1),peps[1](r,c,s));
                Permute(peps[0](r,c,s),shape(0,2,1,3),peps[2](r,c,s));
+               Permute(peps[0](r,c,s),shape(2,3,0,1),peps[3](r,c,s));
 
             }
+
+      Walker walker;
+
+      double tmp = walker.overlap();
+
+      peps[0].scal(1.0/tmp);
+      peps[1].scal(1.0/tmp);
+      peps[2].scal(1.0/tmp);
+      peps[3].scal(1.0/tmp);
 
    }
 
