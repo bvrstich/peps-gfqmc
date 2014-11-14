@@ -34,18 +34,26 @@ class Distribution : public vector<double> {
 
       int draw() const;
 
-      const vector< Walker > &glist() const;
+      const vector< vector<bool> > &gconf() const;
+      const vector<int> &gind() const;
+      const vector<bool> &gsign_flip() const;
 
-      const Walker &gwalker(int) const;
-
-      Walker &gwalker(int);
+      const vector<bool> &gconf(int) const;
+      int gind(int) const;
+      bool gsign_flip(int) const;
 
       void check_negative() const;
 
    private:
 
-      //!list of final walker states
-      vector< Walker > list;
+      //!list of final walker configurations
+      vector< vector<bool> > conf;
+
+      //!list of final walker indices (row,col,dir)
+      vector<int> ind;
+
+      //!list of sign flips, false is no sign flip
+      vector<bool> sign_flip;
       
 };
 

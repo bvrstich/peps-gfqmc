@@ -50,6 +50,8 @@ class Walker : public vector< bool > {
 
       double pot_en() const;
 
+      void sconf(const vector<bool> &);
+
       void calc_EL();
 
       double overlap();

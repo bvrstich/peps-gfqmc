@@ -162,7 +162,10 @@ double GFMC::propagate(){
          num++;
       else{
 
-         walker[i] = dist[myID].gwalker(pick);
+         walker[i].sconf( dist[myID].gconf(pick) );
+
+         if(dist[myID].gsign_flip(pick))
+            walker[i].sign_flip();
 
          //calculate new properties
          walker[i].calc_EL();

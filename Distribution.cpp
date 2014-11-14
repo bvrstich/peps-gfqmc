@@ -24,7 +24,9 @@ Distribution::Distribution() : vector<double> () { }
  */
 Distribution::Distribution(const Distribution &dist_copy) : vector<double>(dist_copy){
 
-   list = dist_copy.glist();
+   this->conf = dist_copy.gconf();
+   this->ind = dist_copy.gind();
+   this->sign_flip = dist_copy.gsign_flip();
 
 }
 
@@ -39,6 +41,33 @@ Distribution::~Distribution(){ }
 int Distribution::gn() const {
 
    return this->size();
+
+}
+
+/** 
+ * @return configurations of final walker states
+ */
+const vector< vector<bool> > &Distribution::gconf() const {
+
+   return conf;
+
+}
+
+/** 
+ * @return list of indicies of final walker configuration (row,col and dir)
+ */
+const vector<int> &Distribution::gind() const {
+
+   return ind;
+
+}
+
+/** 
+ * @return list of booleans, for sign_flip is true sign of final walker is flipped
+ */
+const vector<bool> &Distribution::gsign_flip() const {
+
+   return sign_flip;
 
 }
 
@@ -90,30 +119,32 @@ int Distribution::draw() const {
 }
 
 /** 
- * @return the list of final Walker states
- */
-const vector< Walker > &Distribution::glist() const {
-
-   return list;
-
-}
-
-/** 
- * @return the final state Walker with index i
+ * @return the configuration of the final walker state Walker corresponding to index pick
  * const version
  */
-const Walker &Distribution::gwalker(int index) const {
+const vector<bool> &Distribution::gconf(int pick) const {
 
-   return list[index];
+   return conf[pick];
 
 }
 
 /** 
- * @return the final state Walker with index i
+ * @return the index of the final walker state that has been picked
+ * const version
  */
-Walker &Distribution::gwalker(int index) {
+int Distribution::gind(int pick) const {
 
-   return list[index];
+   return ind[pick];
+
+}
+
+/** 
+ * @return the sign flip flag of the picked walker
+ * const version
+ */
+bool Distribution::gsign_flip(int pick) const {
+
+   return sign_flip[pick];
 
 }
 
@@ -126,11 +157,17 @@ Walker &Distribution::gwalker(int index) {
 void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
    //first reset the lists
-   list.clear();
+   conf.clear();
+   ind.clear();
+   sign_flip.clear();
+
    this->clear();
 
    //f == i first 
-   list.push_back(walker_i);
+   conf.push_back(walker_i);
+   ind.push_back(-1);
+
+   vector<bool> tmp;
 
    //first horizontal 'final' states
    for(int r = 0;r < Ly;++r){
@@ -139,12 +176,13 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
          if(walker_i[r*Lx + c] != walker_i[r*Lx + (c + 1)]){
 
-            Walker walker_f(walker_i);
+            tmp = conf[0];
 
-            walker_f[r*Lx + c] = !(walker_i[r*Lx + c]);
-            walker_f[r*Lx + (c + 1)] = !(walker_i[r*Lx + (c + 1)]);
+            tmp[r*Lx + c] = !(conf[0][r*Lx + c]);
+            tmp[r*Lx + (c + 1)] = !(conf[0][r*Lx + (c + 1)]);
 
-            list.push_back(walker_f);
+            conf.push_back(tmp);
+            ind.push_back(r*Lx + c);
 
          }
 
@@ -159,12 +197,13 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
          if(walker_i[r*Lx + c] != walker_i[(r + 1)*Lx + c]){
 
-            Walker walker_f(walker_i);
+            tmp = conf[0];
 
-            walker_f[r*Lx + c] = !(walker_i[r*Lx + c]);
-            walker_f[(r + 1)*Lx + c] = !(walker_i[(r + 1)*Lx + c]);
+            tmp[r*Lx + c] = !(conf[0][r*Lx + c]);
+            tmp[(r + 1)*Lx + c] = !(conf[0][(r + 1)*Lx + c]);
 
-            list.push_back(walker_f);
+            conf.push_back(tmp);
+            ind.push_back(Lx*Ly + r*Lx + c);
 
          }
 
@@ -172,22 +211,26 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
 
    }
 
-   this->resize(list.size());
+   this->resize(conf.size());
 
-   (*this)[0] = 1.0 - dtau * (list[0].pot_en() - ET);
+   (*this)[0] = 1.0 - dtau * (walker_i.pot_en() - ET);
 
-   for(int i = 1;i < list.size();++i){
+   for(int i = 1;i < conf.size();++i){
 
-       double tmp = 0.5 * dtau * ( walker_i.gnn_over(i) );
+      double ward = 0.5 * dtau * ( walker_i.gnn_over(i) );
 
-       if(tmp < 0.0){
+      if(ward < 0.0){
 
-          (*this)[i] = -tmp;
-          list[i].sign_flip();
+         (*this)[i] = -ward;
+         sign_flip.push_back(true);
 
-       }
-       else
-          (*this)[i] = tmp;
+      }
+      else{
+
+         (*this)[i] = ward;
+         sign_flip.push_back(false);
+
+      }
 
    }
 

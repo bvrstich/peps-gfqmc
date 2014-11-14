@@ -103,6 +103,15 @@ void Walker::multWeight(double factor){
 }
 
 /**
+ * set the walker configuration, bool vector
+ */
+void Walker::sconf(const vector<bool> &conf){
+
+   this->std::vector<bool>::operator=(conf);
+
+}
+
+/**
  * set new weight
  */
 void Walker::sWeight(double new_weight){
