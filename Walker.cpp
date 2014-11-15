@@ -1467,6 +1467,8 @@ void Walker::update_env(int index) {
 
       if(index >= Lx*Ly){//vertical gate
 
+         index -= Lx*Ly;
+
          int col = index % Lx;
          int row = (index - col)/Lx;
 
@@ -1514,7 +1516,7 @@ void Walker::update_env(int index) {
             env.calc('L',true,*this);
 
          }
-         else if(col == Lx - 2){
+         else if(col == Lx - 1){
 
             env.calc('R',false,*this);
             env.calc('R',true,*this);
