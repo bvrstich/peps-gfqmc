@@ -206,6 +206,7 @@ double Walker::pot_en() const {
 
 /**
  * calculate the local energy expectation value and overlap with the accesible states
+ * make sure the environment is calculated
  */
 void Walker::calc_EL(){
 
@@ -217,10 +218,6 @@ void Walker::calc_EL(){
    int M,N,K;
 
    nn_over.clear();
-
-   //first construct the top and bottom (horizontal) environment layers
-   env.calc('H',false,*this);
-   env.calc('H',true,*this);
 
    // #################################################################
    // ### ---- from bottom to top: contract in mps/mpo fashion ---- ### 
@@ -841,10 +838,6 @@ void Walker::calc_EL(){
 
    // -- (1) -- || right column: similar to overlap calculation
 
-   //construct the left and right (vertical) environment layers
-   env.calc('V',false,*this);
-   env.calc('V',true,*this);
-
    //first the rightmost operator
 
    //A: regular
@@ -1416,7 +1409,6 @@ void Walker::calc_EL(){
 
 
 /**
- * @param peps_i peps to take the overlap with
  * @return the overlap between the trial peps (reg + inv) and the walker
  */
 double Walker::overlap() {
@@ -1434,8 +1426,7 @@ double Walker::overlap() {
    //top
    env.gt(false,Ly - 2).fill('t',false,*this);
 
-   //for(int i = Ly - 3;i >= half;--i)
-   int i = Ly - 3;
+   for(int i = Ly - 3;i >= half;--i)
       env.add_layer('t',i,false,*this);
 
    double tmp = env.gb(false,half).dot(env.gt(false,half));
@@ -1457,5 +1448,172 @@ double Walker::overlap() {
    tmp += env.gb(true,half).dot(env.gt(true,half));
 
    return tmp;
+
+}
+
+/**
+ * update the environment for the new walker, taking into account that only number on index have changed
+ * @param index number containing info about which sites changed
+ */
+void Walker::update_env(int index) {
+
+   if(index < 0){
+
+      env.calc('A',false,*this);
+      env.calc('A',true,*this);
+
+   }
+   else{
+
+      if(index >= Lx*Ly){//vertical gate
+
+         int col = index % Lx;
+         int row = (index - col)/Lx;
+
+         //first bottom and top
+         if(row == 0){
+
+            env.calc('B',false,*this);
+            env.calc('B',true,*this);
+
+            env.add_layer('t',0,false,*this);
+            env.add_layer('t',0,true,*this);
+
+         }
+         else if(row == Ly - 2){
+
+            env.calc('T',false,*this);
+            env.calc('T',true,*this);
+
+            env.add_layer('b',Ly - 2,false,*this);
+            env.add_layer('b',Ly - 2,true,*this);
+
+         }
+         else{
+
+            for(int i = row;i < Ly - 1;++i){
+
+               env.add_layer('b',i,false,*this);
+               env.add_layer('b',i,true,*this);
+
+            }
+
+            for(int i = row;i >= 0;--i){
+
+               env.add_layer('t',i,false,*this);
+               env.add_layer('t',i,true,*this);
+
+            }
+
+         }
+
+         //then left and right
+         if(col == 0){
+
+            env.calc('L',false,*this);
+            env.calc('L',true,*this);
+
+         }
+         else if(col == Lx - 2){
+
+            env.calc('R',false,*this);
+            env.calc('R',true,*this);
+
+         }
+         else{
+
+            for(int i = col;i < Ly - 1;++i){
+
+               env.add_layer('l',i,false,*this);
+               env.add_layer('l',i,true,*this);
+
+            }
+
+            for(int i = col - 1;i >= 0;--i){
+
+               env.add_layer('r',i,false,*this);
+               env.add_layer('r',i,true,*this);
+
+            }
+
+         }
+
+      }
+      else{//horizontal gate
+
+         int col = index % Lx;
+         int row = (index - col)/Lx;
+
+         //first bottom and top
+         if(row == 0){
+
+            env.calc('B',false,*this);
+            env.calc('B',true,*this);
+
+         }
+         else if(row == Ly - 1){
+
+            env.calc('T',false,*this);
+            env.calc('T',true,*this);
+
+         }
+         else{
+
+            for(int i = row;i < Ly - 1;++i){
+
+               env.add_layer('b',i,false,*this);
+               env.add_layer('b',i,true,*this);
+
+            }
+
+            for(int i = row - 1;i >= 0;--i){
+
+               env.add_layer('t',i,false,*this);
+               env.add_layer('t',i,true,*this);
+
+            }
+
+         }
+
+         //then left and right
+         if(col == 0){
+
+            env.calc('L',false,*this);
+            env.calc('L',true,*this);
+
+            env.add_layer('r',0,false,*this);
+            env.add_layer('r',0,true,*this);
+
+         }
+         else if(col == Lx - 2){
+
+            env.calc('R',false,*this);
+            env.calc('R',true,*this);
+
+            env.add_layer('l',Lx - 2,false,*this);
+            env.add_layer('l',Lx - 2,true,*this);
+
+         }
+         else{
+
+            for(int i = col;i < Ly - 1;++i){
+
+               env.add_layer('l',i,false,*this);
+               env.add_layer('l',i,true,*this);
+
+            }
+
+            for(int i = col;i >= 0;--i){
+
+               env.add_layer('r',i,false,*this);
+               env.add_layer('r',i,true,*this);
+
+            }
+
+         }
+
+      }
+
+   }
 
 }

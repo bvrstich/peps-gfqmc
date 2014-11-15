@@ -150,20 +150,27 @@ Environment::~Environment(){ }
 
 /**
  * construct the enviroment mps's for the input PEPS and Walker
- * @param dir    if 'H' construct full top and bottom (for horizontal sweep) environments
- *               if 'V' construct full left and right environments, for vertical sweeps
+ * @param dir    if 'T' construct full top  environment
+ *               if 'B' construct full bottom environment
+ *               if 'L' construct full left  environment
+ *               if 'R' construct full right environment
+ *               if 'A' construct all environments, t,l,r and b
  * @param inverse if true inverse walker
  * @param walker input Walker object
  */
 void Environment::calc(const char dir,bool inverse,const Walker &walker){
 
-   if(dir == 'H'){//only bottom and top
+   if(dir == 'B' || dir == 'A'){//bottom
 
       //bottom 
       b[inverse * (Ly - 1)].fill('b',inverse,walker);
 
       for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,inverse,walker);
+
+   }
+
+   if(dir == 'T' || dir == 'A'){//top
 
       //top
       t[Ly - 2 + inverse * (Ly - 1)].fill('t',inverse,walker);
@@ -172,13 +179,18 @@ void Environment::calc(const char dir,bool inverse,const Walker &walker){
          this->add_layer('t',i,inverse,walker);
 
    }
-   else{//Vertical
+
+   if(dir == 'R' || dir == 'A'){//right
 
       //right
       r[Lx - 2 + inverse * (Lx - 1)].fill('r',inverse,walker);
 
       for(int i = Lx - 3;i >= 0;--i)
          this->add_layer('r',i,inverse,walker);
+
+   }
+
+   if(dir == 'L' || dir == 'A'){//left
 
       //and left
       l[inverse * (Lx - 1)].fill('l',inverse,walker);

@@ -47,9 +47,11 @@ void GFMC::SetupWalkers(){
    walker.resize(Nw);
 
    walker[0] = Walker(0);
+   walker[0].update_env(-1);
    walker[0].calc_EL();
 
    walker[1] = Walker(1);
+   walker[1].update_env(-1);
    walker[1].calc_EL();
 
    for(int i = 2;i < Nw;++i){
@@ -168,6 +170,8 @@ double GFMC::propagate(){
             walker[i].sign_flip();
 
          //calculate new properties
+         walker[i].update_env(dist[myID].gind(pick));
+
          walker[i].calc_EL();
 
       }
