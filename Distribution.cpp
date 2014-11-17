@@ -166,6 +166,7 @@ void Distribution::construct(const Walker &walker_i,double dtau,double ET){
    //f == i first 
    conf.push_back(walker_i);
    ind.push_back(-1);
+   sign_flip.push_back(false);
 
    vector<bool> tmp;
 
