@@ -123,6 +123,11 @@ Environment::Environment(int D_in,int D_aux_in,int comp_sweeps_in){
 
    }
 
+   flag_b = true;
+   flag_t = true;
+   flag_l = true;
+   flag_r = true;
+
 }
 
 /** 
@@ -140,6 +145,11 @@ Environment::Environment(const Environment &env_copy){
    D_aux = env_copy.gD_aux();
 
    comp_sweeps = env_copy.gcomp_sweeps();
+
+   flag_b = env_copy.gflag_b();
+   flag_t = env_copy.gflag_t();
+   flag_l = env_copy.gflag_l();
+   flag_r = env_copy.gflag_r();
 
 }
 
@@ -168,6 +178,8 @@ void Environment::calc(const char dir,bool inverse,const Walker &walker){
       for(int i = 1;i < Ly - 1;++i)
          this->add_layer('b',i,inverse,walker);
 
+      flag_b = false;
+
    }
 
    if(dir == 'T' || dir == 'A'){//top
@@ -177,6 +189,8 @@ void Environment::calc(const char dir,bool inverse,const Walker &walker){
 
       for(int i = Ly - 3;i >= 0;--i)
          this->add_layer('t',i,inverse,walker);
+
+      flag_t = false;
 
    }
 
@@ -188,6 +202,8 @@ void Environment::calc(const char dir,bool inverse,const Walker &walker){
       for(int i = Lx - 3;i >= 0;--i)
          this->add_layer('r',i,inverse,walker);
 
+      flag_r = false;
+
    }
 
    if(dir == 'L' || dir == 'A'){//left
@@ -197,6 +213,8 @@ void Environment::calc(const char dir,bool inverse,const Walker &walker){
 
       for(int i = 1;i < Lx - 1;++i)
          this->add_layer('l',i,inverse,walker);
+
+      flag_l = false;
 
    }
 
@@ -220,6 +238,42 @@ void Environment::test(bool inverse){
    for(int i = 0;i < Lx - 1;++i)
       cout << i << "\t" << l[i + inverse * (Lx - 1)].dot(r[i + inverse * (Lx - 1)]) << endl;
    cout << endl;
+
+}
+
+/**
+ * @return the flag saying if there is a previous guess for the bottom environment or not
+ */
+bool Environment::gflag_b() const {
+
+   return flag_b;
+
+}
+
+/**
+ * @return the flag saying if there is a previous guess for the top environment or not
+ */
+bool Environment::gflag_t() const {
+
+   return flag_t;
+
+}
+
+/**
+ * @return the flag saying if there is a previous guess for the left environment or not
+ */
+bool Environment::gflag_l() const {
+
+   return flag_l;
+
+}
+
+/**
+ * @return the flag saying if there is a previous guess for the right environment or not
+ */
+bool Environment::gflag_r() const {
+
+   return flag_r;
 
 }
 
@@ -414,7 +468,8 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
       DArray<3> tmp3bis;
       DArray<3> tmp3;
 
-      b[rc + inverse * (Ly - 1)].fill_Random();
+      if(flag_b)
+         b[rc + inverse * (Ly - 1)].fill_Random();
 
       vector< DArray<3> > R(Lx - 1);
 
@@ -589,7 +644,8 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
    }
    else if(dir == 't'){
 
-      t[rc + inverse*(Ly - 1)].fill_Random();
+      if(flag_t)
+         t[rc + inverse*(Ly - 1)].fill_Random();
 
       DArray<4> tmp4;
       DArray<4> tmp4bis;
@@ -769,7 +825,8 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
    }
    else if(dir == 'r'){
 
-      r[rc + inverse*(Lx - 1)].fill_Random();
+      if(flag_r)
+         r[rc + inverse*(Lx - 1)].fill_Random();
 
       vector< DArray<3> > R(Ly - 1);
 
@@ -948,7 +1005,8 @@ void Environment::add_layer(const char dir,int rc,bool inverse,const Walker &wal
    }
    else{//left
 
-      l[rc + inverse*(Lx - 1)].fill_Random();
+      if(flag_l)
+         l[rc + inverse*(Lx - 1)].fill_Random();
 
       vector< DArray<3> > R(Ly - 1);
 

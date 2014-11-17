@@ -239,30 +239,53 @@ void MPS::fill(char option,bool inverse,const Walker &walker) {
    if(option == 'b'){
 
       //just a shallow copy of bottom row
-      for(int col = 0;col < Lx;++col)
-         (*this)[col].share_mem(peps[0](0,col, inverse ^ walker[col] ));
+      for(int col = 0;col < Lx;++col){
 
+         bool s = inverse ^ walker[col];
+         int dim = (*this)[col].size();
+
+         blas::copy(dim, peps[0](0,col,s).data(), 1, (*this)[col].data(), 1);
+
+      }
 
    }
    else if(option == 't'){
 
       //just a shallow copy of the top row
-      for(int col = 0;col < Lx;++col)
-         (*this)[col].share_mem(peps[0](Ly-1,col, inverse ^ walker[(Ly-1)*Lx + col] ));
+      for(int col = 0;col < Lx;++col){
+
+         bool s = inverse ^ walker[(Ly-1)*Lx + col];
+         int dim = (*this)[col].size();
+
+         blas::copy(dim, peps[0](Ly-1,col,s).data(), 1, (*this)[col].data(), 1);
+
+      }
 
    }
    else if(option == 'l'){
 
       //just a shallow copy of the left col
-      for(int row = 0;row < Ly;++row)
-         (*this)[row].share_mem(peps[1](row,0, inverse ^ walker[row*Lx] ));
+      for(int row = 0;row < Ly;++row){
+
+         bool s = inverse ^ walker[row*Lx];
+         int dim = (*this)[row].size();
+
+         blas::copy(dim, peps[1](row,0,s).data(), 1, (*this)[row].data(), 1);
+
+      }
 
    }
    else{//right
 
       //just a shallow copy of the right col
-      for(int row = 0;row < Ly;++row)
-         (*this)[row].share_mem(peps[1](row,Lx - 1, inverse ^ walker[row*Lx + Lx - 1] ));
+      for(int row = 0;row < Ly;++row){
+
+         bool s = inverse ^ walker[row*Lx + Lx - 1];
+         int dim = (*this)[row].size();
+
+         blas::copy(dim, peps[1](row,Lx - 1,s).data(), 1, (*this)[row].data(), 1);
+
+      }
 
    }
 

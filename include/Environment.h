@@ -64,6 +64,11 @@ class Environment {
 
       void add_layer(const char,int,bool,const Walker &);
 
+      bool gflag_b() const;
+      bool gflag_t() const;
+      bool gflag_l() const;
+      bool gflag_r() const;
+
    private:
 
       //!stores an array environment MPS's for l(eft) , r(ight), t(op) and b(ottom)
@@ -71,6 +76,11 @@ class Environment {
       vector< MPS > r;
       vector< MPS > t;
       vector< MPS > b;
+
+      bool flag_b;
+      bool flag_t;
+      bool flag_l;
+      bool flag_r;
 
       //!regular bond dimension of peps
       int D;

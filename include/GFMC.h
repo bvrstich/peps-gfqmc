@@ -29,7 +29,7 @@ class GFMC {
       double propagate();
       
       //Control the population of walkers based on scaling * weight
-      void PopulationControl(double);
+      void PopulationControl(int,double);
 
       //Calculate the single walker projected energies, update the energy history, calculate the fluctuation metric, and the total projected energy
       void sEP();

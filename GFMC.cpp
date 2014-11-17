@@ -108,7 +108,7 @@ void GFMC::walk(const int n_steps){
       write(step);
 
       //Based on scaling, first control the population on each rank separately, and then balance the population over the ranks (uses MPI)
-      PopulationControl(scaling);
+      PopulationControl(step,scaling);
 
       double max_en = -100.0;
       double min_en = 100.0;
@@ -190,9 +190,11 @@ double GFMC::propagate(){
 }
 
 /**
+ * @param step when step is certain number, do the population control
+ * @param scaling factor with which to rescale the walkers
  * redistribute the weights to stabilize the walk, keep the population in check
  */
-void GFMC::PopulationControl(double scaling){
+void GFMC::PopulationControl(int step,double scaling){
 
    double minw = 1.0;
    double maxw = 1.0;
@@ -200,74 +202,86 @@ void GFMC::PopulationControl(double scaling){
    for(unsigned int i = 0;i < walker.size();i++)
       walker[i].multWeight(scaling);
 
-   for(unsigned int i = 0;i < walker.size();i++){
+   if(step % 100 == 0){
 
-      double weight = walker[i].gWeight();
+      //remove those too small
+      for(unsigned int i = 0;i < walker.size();i++){
 
-      if(weight < minw)
-         minw = weight;
+         double weight = walker[i].gWeight();
 
-      if(weight > maxw)
-         maxw = weight;
+         if(weight < minw)
+            minw = weight;
 
-      if (weight < 0.10){ //Energy doesn't change statistically
+         if(weight > maxw)
+            maxw = weight;
 
-         int nCopies = (int) ( weight + RN());
+         if (weight < 0.10){ //Energy doesn't change statistically
 
-         if(nCopies == 0){
+            int nCopies = (int) ( weight + RN());
 
-#ifdef _DEBUG
-            cout << "Walker with weight " << weight << " will be deleted." << endl;
-#endif
-
-            walker.erase(walker.begin() + i);
-
-         }
-         else
-            walker[i].sWeight(1.0);
-
-      }
-
-      if(weight > 2.0){ //statically energy doesn't change
-
-         int nCopies =(int) ( weight + RN());
-         double new_weight = weight / (double) nCopies;
-
-         walker[i].sWeight(new_weight);
+            if(nCopies == 0){
 
 #ifdef _DEBUG
-         cout << "Walker with weight " << weight << " will be " << nCopies << " times copied with weight " << new_weight << "." << endl;
+               cout << "Walker with weight " << weight << " will be deleted." << endl;
 #endif
 
-         for(int n = 1;n < nCopies;++n){
+               walker.erase(walker.begin() + i);
+               --i;
 
-            Walker nw = walker[i];
-            walker.push_back(nw);
+            }
+            else
+               walker[i].sWeight(1.0);
 
          }
 
       }
+
+      //multiply those too large
+      int pop = walker.size();
+
+      for(unsigned int i = 0;i < pop;i++){
+
+         double weight = walker[i].gWeight();
+
+         if(weight > 2.0){ //statically energy doesn't change
+
+            int nCopies =(int) ( weight + RN());
+            double new_weight = weight / (double) nCopies;
+
+            walker[i].sWeight(new_weight);
+
+#ifdef _DEBUG
+            cout << "Walker with weight " << weight << " will be " << nCopies << " times copied with weight " << new_weight << "." << endl;
+#endif
+
+            for(int n = 1;n < nCopies;++n)
+               walker.push_back(walker[i]);
+
+         }
+
+      }
+
+      //get the new weight
+      double sum = 0.0;
+
+      for(unsigned int i = 0;i < walker.size();++i)
+         sum += walker[i].gWeight();
+
+      //rescale the weights to unity for correct ET estimate in next iteration
+      for(unsigned int i = 0;i < walker.size();++i)
+         walker[i].multWeight((double)Nw/sum);
+
+#ifdef _DEBUG
+      cout << endl;
+      cout << "total weight:\t" << sum << endl;
+      cout << endl;
+
+      cout << "The min. encountered weight is " << minw << " ." << endl;
+      cout << "The max. encountered weight is " << maxw << " ." << endl;
+      cout << endl;
+#endif
 
    }
-
-   double sum = 0.0;
-
-   for(unsigned int i = 0;i < walker.size();++i)
-      sum += walker[i].gWeight();
-
-   //rescale the weights to unity for correct ET estimate in next iteration
-   for(unsigned int i = 0;i < walker.size();++i)
-      walker[i].multWeight((double)Nw/sum);
-
-#ifdef _DEBUG
-   cout << endl;
-   cout << "total weight:\t" << sum << endl;
-   cout << endl;
-
-   cout << "The min. encountered weight is " << minw << " ." << endl;
-   cout << "The max. encountered weight is " << maxw << " ." << endl;
-   cout << endl;
-#endif
 
 }
 
