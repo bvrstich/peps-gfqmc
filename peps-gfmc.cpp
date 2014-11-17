@@ -29,10 +29,10 @@ int main(int argc,char *argv[]){
    global::init(D,D_aux,d,L,L);
 
    double dtau = 0.01;
-   int Nw = 1000;
+   int Nw = 10000;
 
    GFMC gfmc(dtau,Nw);
-   gfmc.walk(500);
+   gfmc.walk(1000000);
 
    return 0;
 
