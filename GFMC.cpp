@@ -176,7 +176,7 @@ double GFMC::propagate(){
             walker[i]->sign_flip();
 
          //calculate new properties
-         walker[i]->update_env(dist[myID].gind(pick));
+         walker[i]->update_env(-1);//dist[myID].gind(pick));
 
          walker[i]->calc_EL();
 
@@ -208,7 +208,7 @@ void GFMC::PopulationControl(int step,double scaling){
    for(unsigned int i = 0;i < walker.size();i++)
       walker[i]->multWeight(scaling);
 
-   if(step % 100 == 0){
+   //if(step % 100 == 0){
 
       //remove those too small
       for(unsigned int i = 0;i < walker.size();i++){
@@ -247,7 +247,7 @@ void GFMC::PopulationControl(int step,double scaling){
       //multiply those too large
       int pop = walker.size();
 
-      for(unsigned int i = 0;i < pop;i++){
+      for(int i = 0;i < pop;i++){
 
          double weight = walker[i]->gWeight();
 
@@ -294,7 +294,7 @@ void GFMC::PopulationControl(int step,double scaling){
       cout << endl;
 #endif
 
-   }
+//   }
 
 }
 
