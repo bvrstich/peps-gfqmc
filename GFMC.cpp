@@ -46,20 +46,20 @@ void GFMC::SetupWalkers(){
 
    walker.resize(Nw);
 
-   walker[0] = Walker(0);
-   walker[0].update_env(-1);
-   walker[0].calc_EL();
+   walker[0] = new Walker(0);
+   walker[0]->update_env(-1);
+   walker[0]->calc_EL();
 
-   walker[1] = Walker(1);
-   walker[1].update_env(-1);
-   walker[1].calc_EL();
+   walker[1] = new Walker(1);
+   walker[1]->update_env(-1);
+   walker[1]->calc_EL();
 
    for(int i = 2;i < Nw;++i){
 
       if(i % 2 == 0)
-         walker[i] = walker[0];
+         walker[i] = new Walker(*walker[0]);
       else 
-         walker[i] = walker[1];
+         walker[i] = new Walker(*walker[1]);
 
    }
 
@@ -115,11 +115,11 @@ void GFMC::walk(const int n_steps){
 
       for(unsigned int i = 0;i < walker.size();++i){
 
-         if(max_en < walker[i].gEL())
-            max_en = walker[i].gEL();
+         if(max_en < walker[i]->gEL())
+            max_en = walker[i]->gEL();
 
-         if(min_en > walker[i].gEL())
-            min_en = walker[i].gEL();
+         if(min_en > walker[i]->gEL())
+            min_en = walker[i]->gEL();
 
       }
 
@@ -152,7 +152,7 @@ double GFMC::propagate(){
 #endif
 
       //construct distribution
-      dist[myID].construct(walker[i],dtau,0.0);
+      dist[myID].construct(*walker[i],dtau,0.0);
       dist[myID].check_negative();
 
       double nrm = dist[myID].normalize();
@@ -164,22 +164,22 @@ double GFMC::propagate(){
          num++;
       else{
 
-         walker[i].sconf( dist[myID].gconf(pick) );
+         walker[i]->sconf( dist[myID].gconf(pick) );
 
          if(dist[myID].gsign_flip(pick))
-            walker[i].sign_flip();
+            walker[i]->sign_flip();
 
          //calculate new properties
-         walker[i].update_env(dist[myID].gind(pick));
+         walker[i]->update_env(dist[myID].gind(pick));
 
-         walker[i].calc_EL();
+         walker[i]->calc_EL();
 
       }
 
       //multiply weight
-      walker[i].multWeight(nrm);
+      walker[i]->multWeight(nrm);
 
-      sum += walker[i].gWeight();
+      sum += walker[i]->gWeight();
 
    }
 
@@ -200,14 +200,14 @@ void GFMC::PopulationControl(int step,double scaling){
    double maxw = 1.0;
 
    for(unsigned int i = 0;i < walker.size();i++)
-      walker[i].multWeight(scaling);
+      walker[i]->multWeight(scaling);
 
    if(step % 100 == 0){
 
       //remove those too small
       for(unsigned int i = 0;i < walker.size();i++){
 
-         double weight = walker[i].gWeight();
+         double weight = walker[i]->gWeight();
 
          if(weight < minw)
             minw = weight;
@@ -225,12 +225,14 @@ void GFMC::PopulationControl(int step,double scaling){
                cout << "Walker with weight " << weight << " will be deleted." << endl;
 #endif
 
+               delete walker[i];
+
                walker.erase(walker.begin() + i);
                --i;
 
             }
             else
-               walker[i].sWeight(1.0);
+               walker[i]->sWeight(1.0);
 
          }
 
@@ -241,21 +243,26 @@ void GFMC::PopulationControl(int step,double scaling){
 
       for(unsigned int i = 0;i < pop;i++){
 
-         double weight = walker[i].gWeight();
+         double weight = walker[i]->gWeight();
 
          if(weight > 2.0){ //statically energy doesn't change
 
             int nCopies =(int) ( weight + RN());
             double new_weight = weight / (double) nCopies;
 
-            walker[i].sWeight(new_weight);
+            walker[i]->sWeight(new_weight);
 
 #ifdef _DEBUG
             cout << "Walker with weight " << weight << " will be " << nCopies << " times copied with weight " << new_weight << "." << endl;
 #endif
 
-            for(int n = 1;n < nCopies;++n)
-               walker.push_back(walker[i]);
+            for(int n = 1;n < nCopies;++n){
+
+               Walker *nw = new Walker(*walker[i]);
+
+               walker.push_back(nw);
+
+            }
 
          }
 
@@ -265,11 +272,11 @@ void GFMC::PopulationControl(int step,double scaling){
       double sum = 0.0;
 
       for(unsigned int i = 0;i < walker.size();++i)
-         sum += walker[i].gWeight();
+         sum += walker[i]->gWeight();
 
       //rescale the weights to unity for correct ET estimate in next iteration
       for(unsigned int i = 0;i < walker.size();++i)
-         walker[i].multWeight((double)Nw/sum);
+         walker[i]->multWeight((double)Nw/sum);
 
 #ifdef _DEBUG
       cout << endl;
@@ -298,14 +305,14 @@ void GFMC::sEP(){
 
    for(unsigned int wi = 0;wi < walker.size();wi++){
 
-      double w_loc_en = walker[wi].gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
+      double w_loc_en = walker[wi]->gEL(); // <Psi_T | H | walk > / <Psi_T | walk >
 
       //For the projected energy
-      projE_num += walker[wi].gsign() * walker[wi].gWeight() * w_loc_en;
-      projE_den += walker[wi].gsign() * walker[wi].gWeight();
+      projE_num += walker[wi]->gsign() * walker[wi]->gWeight() * w_loc_en;
+      projE_den += walker[wi]->gsign() * walker[wi]->gWeight();
 
-      sign_num += walker[wi].gsign() * walker[wi].gWeight();
-      sign_den += walker[wi].gWeight();
+      sign_num += walker[wi]->gsign() * walker[wi]->gWeight();
+      sign_den += walker[wi]->gWeight();
 
    }
 
@@ -341,8 +348,8 @@ void GFMC::dump(const char *filename){
 
       for(int r = 0;r < Ly;++r)
          for(int c = 0;c < Lx;++c)
-            out << walker[i][r*Lx + c] << " ";
-      out << walker[i].gWeight() << endl;
+            out << (*walker[i])[r*Lx + c] << " ";
+      out << walker[i]->gWeight() << endl;
 
    }
 

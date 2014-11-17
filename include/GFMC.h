@@ -63,7 +63,7 @@ class GFMC {
       double avs;
 
       //!The walkers
-      std::vector<Walker> walker;
+      std::vector<Walker*> walker;
 
       //!Distribution of possible final states given a walker state
       std::vector< Distribution > dist;
