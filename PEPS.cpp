@@ -74,15 +74,15 @@ PEPS<T>::~PEPS(){ }
 
 /**
  * access to the individual tensors: const version
- * @param r row index
- * @param c col index
+ * @param row row index
+ * @param col col index
  * @param s spin index
  * @return the tensor on site (r,c) with spin s
  */
 template<typename T>
-const TArray<T,4> &PEPS<T>::operator()(int r,int c,int s) const {
+const TArray<T,4> &PEPS<T>::operator()(int row,int col,int s) const {
 
-   return (*this)[s*Lx*Ly + r*Lx + c];
+   return (*this)[s*Lx*Ly + row*Lx + col];
 
 }
 

@@ -17,7 +17,7 @@ using namespace global;
 
 /**
  * construct a Walker object: initialize on AF state
- * @param optoin start with up or down spin
+ * @param option start with up or down spin
  */
 Walker::Walker(int option) : std::vector< bool >( Lx * Ly ){
 
