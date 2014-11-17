@@ -35,9 +35,15 @@ GFMC::GFMC(double dtau_in,int Nw_in){
 }
 
 /**
- * unnecessary destructor...
+ * destructor...
  */
-GFMC::~GFMC(){ }
+GFMC::~GFMC(){ 
+
+   //remove the walkers
+   for(int i = 0;i < walker.size();++i)
+      delete walker[i];
+   
+}
 
 /**
  * initialize the walkers: read in distribution from walkers dir
